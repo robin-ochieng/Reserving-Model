@@ -1,0 +1,110 @@
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+  }
+  
+  .main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .header-section {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+  }
+  
+  .sacos-logo {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(45deg, #c41e3a, #e74c3c);
+    transform: rotate(45deg);
+    margin: 0 auto 20px;
+    position: relative;
+    border-radius: 8px;
+  }
+  
+  .sacos-logo:before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    color: white;
+    font-weight: bold;
+    font-size: 24px;
+  }
+  
+  .company-name {
+    font-size: 32px;
+    font-weight: 600;
+    color: #1e6bb8;
+    margin: 20px 0;
+  }
+  
+  .tagline {
+    font-size: 14px;
+    color: #666;
+    margin-top: -10px;
+    font-style: italic;
+  }
+  
+  .valuation-title {
+    font-size: 24px;
+    font-weight: 500;
+    color: #333;
+    margin: 30px 0 20px;
+    text-decoration: underline;
+    text-underline-offset: 8px;
+    text-decoration-thickness: 2px;
+  }
+  
+  .info-table {
+    margin: 30px auto;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .info-table td {
+    padding: 15px 25px;
+    border: 1px solid #e1e5e9;
+    font-size: 16px;
+  }
+  
+  .info-table td:first-child {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    width: 150px;
+  }
+  
+  .content-section {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    min-height: 500px;
+  }
+  
+  .nav-item {
+    margin-right: 20px;
+  }
+  
+  .placeholder-content {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+  }
+  
+  .placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+  }
