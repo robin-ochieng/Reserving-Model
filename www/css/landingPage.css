@@ -1,0 +1,24 @@
+.date-inputs-container {
+  margin: 30px auto;
+  max-width: 400px;
+}
+
+.date-input-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  justify-content: space-between;
+}
+
+.date-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 16px;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.date-picker-wrapper {
+  flex: 1;
+  margin-left: 20px;
+}

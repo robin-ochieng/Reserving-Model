@@ -21,13 +21,18 @@
   .sacos-logo {
     width: 60px;
     height: 60px;
-    background: linear-gradient(45deg, #c41e3a, #e74c3c);
-    transform: rotate(45deg);
+    text-align: center;
     margin: 0 auto 20px;
     position: relative;
     border-radius: 8px;
   }
-  
+
+  .sacos-logo img {
+    max-height: 80px;
+    max-width: 200px;
+    object-fit: contain;
+  }
+
   .sacos-logo:before {
     content: '';
     position: absolute;
@@ -44,13 +49,6 @@
     font-weight: 600;
     color: #1e6bb8;
     margin: 20px 0;
-  }
-  
-  .tagline {
-    font-size: 14px;
-    color: #666;
-    margin-top: -10px;
-    font-style: italic;
   }
   
   .valuation-title {
@@ -108,3 +106,67 @@
     margin-bottom: 20px;
     opacity: 0.5;
   }
+
+/* Professional Footer with Gradient, reduce for me the height of the footer as well*/
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #f8f9fa;
+  background-image: linear-gradient(to top, #ffffff, #f8f9fa);
+  border-top: 1px solid #dee2e6;
+  padding: 8px 0;
+  z-index: 1000;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+  height: 70px; /* Reduced height */
+  display: flex;
+}
+
+.footer-content {
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-bottom: 5px;
+  padding: 0 15px;
+}
+
+.footer-text {
+  color: #495057;
+  font-size: 9px;
+  vertical-align: middle;
+  font-weight: 500;
+}
+
+.footer-logo {
+  height: 30px;
+  margin-left: 5px;
+  vertical-align: middle;
+  transition: all 0.3s ease;
+}
+
+.footer-logo:hover {
+  filter: brightness(1.1);
+  transform: scale(1.05);
+}
+
+/* Perfect Logo Centering */
+.sacos-logo {
+  text-align: center;
+  margin: 0 auto 40px;
+  padding: 0 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sacos-logo img {
+  max-height: 80px;
+  max-width: 200px;
+  object-fit: contain;
+  display: block;
+}
+
+.main-container {
+  padding-bottom: 60px;
+}

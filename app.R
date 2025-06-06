@@ -6,6 +6,10 @@ library(shiny)
 library(shiny.fluent)
 library(htmltools)
 library(DT)
+library(readxl)
+library(shinyjs)
+library(dplyr)
+
 
 # Load custom modules
 source("Modules/landingPageModule.R")
@@ -18,8 +22,25 @@ source("Modules/reportedDataModule.R")
 # Main UI
 ui <- fluidPage(
   tags$head(
+    # Include Font Awesome for icons
+    tags$link(rel = "stylesheet", 
+              href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"),
+    # Include custom CSS files
     tags$link(rel = "stylesheet", type = "text/css", href = "css/custom_styles.css"),
-    tags$title("SACOS Reserving Model")
+    tags$link(rel = "stylesheet", type = "text/css", href = "css/landingPage.css"),
+    tags$link(rel = "stylesheet", type = "text/css", href = "css/dataModule.css"),
+    tags$title("SACOS Reserving Model"),
+    # Add custom JavaScript for download functionality
+    tags$script(HTML("
+      Shiny.addCustomMessageHandler('downloadFile', function(message) {
+        const link = document.createElement('a');
+        link.href = message.dataUri;
+        link.download = message.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    "))
   ),
   
   div(class = "main-container",
