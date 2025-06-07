@@ -119,7 +119,8 @@ dataModuleUI <- function(id) {
                 src = "images/kenbright.png", 
                 alt = "Kenbright AI",
                 class = "footer-logo"
-              )
+              ),
+              tags$span(" AI")
             )
           )
         )     
