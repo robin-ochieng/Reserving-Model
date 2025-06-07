@@ -23,9 +23,9 @@ source("Modules/reportedDataModule.R")
 ui <- fluidPage(
   tags$head(
     # Include Font Awesome for icons
-    tags$link(rel = "stylesheet", 
-              href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"),
-    # Include custom CSS files
+    tags$link(rel = "stylesheet", href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"),
+    tags$link(rel = "icon", type = "image/x-icon", href = "favicon/saccos_logo.ico"),
+    tags$link(rel = "shortcut icon", type = "image/x-icon", href = "favicon/saccos_logo.ico"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/custom_styles.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/landingPage.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/dataModule.css"),
