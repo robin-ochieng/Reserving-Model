@@ -110,7 +110,7 @@
 /* Professional Footer with Gradient, reduce for me the height of the footer as well*/
 .app-footer {
   position: fixed;
-  bottom: 0;
+  bottom: 10px;
   left: 0;
   right: 0;
   background-color: #f8f9fa;
@@ -119,7 +119,7 @@
   padding: 8px 0;
   z-index: 1000;
   box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
-  height: 70px; /* Reduced height */
+  height: 80px; /* Reduced height */
   display: flex;
 }
 
@@ -127,7 +127,7 @@
   text-align: center;
   max-width: 1200px;
   margin: 0 auto;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   padding: 0 15px;
 }
 
