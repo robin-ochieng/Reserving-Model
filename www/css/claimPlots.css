@@ -1,0 +1,413 @@
+/* Claim Plots Module Styling */
+
+/* Table Styling */
+#extremeValueTable {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin-left: 10px;
+}
+
+/* Editable cells styling */
+.DataTable td.editable {
+  background-color: #f0f8ff;
+  cursor: pointer;
+  position: relative;
+}
+
+.DataTable td.editable:hover {
+  background-color: #e6f3ff;
+  box-shadow: inset 0 0 0 1px #1e6bb8;
+}
+
+.DataTable td.editable::after {
+  content: "✏️";
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+/* Extreme value highlighting */
+.extreme-positive {
+  color: #d13438;
+  font-weight: 600;
+}
+
+.extreme-negative {
+  color: #107c10;
+  font-weight: 600;
+}
+
+/* Scatter plot container */
+.plotly-graph-div {
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Dropdown styling for consistency with Fluent UI */
+.ms-Dropdown-container {
+  margin-bottom: 0;
+}
+
+/* Table row hover effect */
+#extremeValueTable tbody tr:hover {
+  background-color: #f3f2f1;
+  transition: background-color 0.2s ease;
+}
+
+/* Button hover effects */
+.ms-Button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Section headers */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e1e1e1;
+}
+
+/* Control panel styling */
+.control-panel {
+  background-color: #f3f2f1;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Summary statistics styling */
+.summary-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #faf9f8;
+  border-radius: 4px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e6bb8;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #605e5c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Loading indicator */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #605e5c;
+}
+
+.loading-indicator::after {
+  content: "Loading data...";
+  font-size: 16px;
+  margin-left: 10px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .control-panel {
+    padding: 15px;
+  }
+  
+  .ms-Stack--horizontal {
+    flex-direction: column !important;
+  }
+  
+  .ms-Stack--horizontal > * {
+    margin-bottom: 10px;
+    width: 100% !important;
+  }
+  
+  .summary-stats {
+    flex-direction: column;
+  }
+  
+  .stat-item {
+    margin-bottom: 10px;
+  }
+}
+
+/* Export buttons styling */
+.dt-buttons {
+  margin-bottom: 10px;
+}
+
+.dt-button {
+  background-color: #1e6bb8;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  margin-right: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.dt-button:hover {
+  background-color: #106ebe;
+  transform: translateY(-1px);
+}
+
+/* Plotly controls customization */
+.modebar {
+  background-color: transparent !important;
+}
+
+.modebar-btn {
+  fill: #605e5c !important;
+}
+
+.modebar-btn:hover {
+  fill: #1e6bb8 !important;
+}
+
+/* Notification styling */
+.shiny-notification {
+  border-radius: 4px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+
+
+/* Main container styling */
+.main-container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.content-section {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Enhanced card styling */
+.control-panel-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: white;
+}
+
+.control-panel-card .ms-Label {
+  color: white !important;
+}
+
+.table-card, .plot-card {
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 25px;
+  border: 1px solid #e9ecef;
+}
+
+/* Header styling */
+.module-header {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.module-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 10px;
+}
+
+/* Summary statistics styling */
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Button styling */
+.ms-Button--primary {
+  background-color: #667eea !important;
+  border-color: #667eea !important;
+}
+
+.ms-Button--primary:hover {
+  background-color: #5a67d8 !important;
+  border-color: #5a67d8 !important;
+}
+
+.ms-Button--default {
+  background-color: #6c757d !important;
+  color: white !important;
+  border-color: #6c757d !important;
+}
+
+.ms-Button--default:hover {
+  background-color: #5a6268 !important;
+  border-color: #5a6268 !important;
+}
+
+/* DataTable styling */
+.dataTables_wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.dataTable {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dataTable thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.dataTable thead th {
+  color: white !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  padding: 12px 18px !important;
+  border-bottom: none !important;
+}
+
+.dataTable tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.dataTable tbody tr:hover {
+  background-color: #f8f9fa !important;
+}
+
+.dataTable tbody td {
+  padding: 12px 18px !important;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+/* Editable cell styling */
+.dataTable tbody td.editable {
+  background-color: #e8f4fd;
+  cursor: pointer;
+  position: relative;
+}
+
+.dataTable tbody td.editable:hover {
+  background-color: #d1e7fd;
+}
+
+.dataTable tbody td.editable::after {
+  content: '✏️';
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .module-title {
+    font-size: 2rem;
+  }
+
+}
+
+/* Loading animation */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
