@@ -1,14 +1,115 @@
-# Data Module UI
+# Data Module UI with File Upload
+# Required libraries
+library(shiny)
+library(shiny.fluent)
+library(DT)
+library(readxl)
+library(dplyr)
+library(lubridate) # For year() function
+
 dataModuleUI <- function(id) {
   ns <- NS(id)
   
   div(class = "content-section",
     # Simple Header
     div(class = "data-header",
-      Text("Claims Data Management", variant = "xLarge", 
-           style = list(fontWeight = "600", color = "#1e6bb8", marginBottom = "10px")),
-           variant = "medium", style = list(color = "#666", marginBottom = "30px")),
+      Text("Claims Data Management", variant = "xLarge",
+           style = list(fontWeight = "600", color = "#1e6bb8", marginBottom = "10px"))
+    ),
     
+    # File Upload Section
+    div(class = "upload-section",
+      style = list(
+        background = "#f3f2f1",
+        padding = "20px",
+        borderRadius = "8px",
+        marginBottom = "20px"
+      ),
+      Stack(
+        horizontal = FALSE,
+        tokens = list(childrenGap = 15),
+        Text("Upload Claims Data", variant = "large", style = list(fontWeight = "500", marginBottom = "10px")),
+        
+        # Upload buttons row
+        div(
+          style = list(display = "flex", gap = "20px", flexWrap = "wrap"),
+          
+        # Paid Claims Upload
+        div(
+          style = list(flex = "1", minWidth = "300px"),
+          Stack(
+            horizontal = FALSE,
+            tokens = list(childrenGap = 12),
+            Stack(
+              horizontal = TRUE,
+              tokens = list(childrenGap = 10),
+              Icon(iconName = "ExcelDocument", style = list(fontSize = "24px", color = "#107c10")),
+              Text("Paid Claims Data", variant = "medium", style = list(fontWeight = "600"))
+            ),
+            
+            # Styled file input wrapper
+            div(
+              class = "custom-file-wrapper",
+              fileInput(
+                ns("uploadPaid"),
+                label = NULL,
+                accept = c(".xlsx", ".xls"),
+                buttonLabel = HTML(paste0(
+                  '<i class="ms-Icon ms-Icon--CloudUpload" style="margin-right: 8px;"></i>',
+                  'Choose or Drop File'
+                )),
+                placeholder = "No file selected"
+              )
+            ),
+            
+            uiOutput(ns("paidUploadStatus"))
+          )
+        ),
+
+        # Outstanding Claims Upload
+        div(
+          style = list(flex = "1", minWidth = "300px"),
+          Stack(
+            horizontal = FALSE,
+            tokens = list(childrenGap = 12),
+            Stack(
+              horizontal = TRUE,
+              tokens = list(childrenGap = 10),
+              Icon(iconName = "ExcelDocument", style = list(fontSize = "24px", color = "#d13438")),
+              Text("Outstanding Claims Data", variant = "medium", style = list(fontWeight = "600"))
+            ),
+            
+            # Styled file input wrapper
+            div(
+              class = "custom-file-wrapper",
+              fileInput(
+                ns("uploadOutstanding"),
+                label = NULL,
+                accept = c(".xlsx", ".xls"),
+                buttonLabel = HTML(paste0(
+                  '<i class="ms-Icon ms-Icon--CloudUpload" style="margin-right: 8px;"></i>',
+                  'Choose or Drop File'
+                )),
+                placeholder = "No file selected"
+              )
+            ),
+            
+            uiOutput(ns("outstandingUploadStatus"))
+          )
+        )
+        ),
+        
+        # Clear data button
+        div(
+          style = list(marginTop = "10px"),
+          DefaultButton(
+            inputId = ns("clearData"),
+            text = "Clear All Data",
+            iconProps = list(iconName = "Delete")
+          )
+        )
+      )
+    ),
     
     # Simple Status Row
     div(class = "simple-status-row",
@@ -32,13 +133,6 @@ dataModuleUI <- function(id) {
           Text("Reported Claims", style = list(fontWeight = "500")),
           uiOutput(ns("reportedStatus"))
         )
-      ),
-      div(class = "status-item",
-        DefaultButton(
-          inputId = ns("refreshData"),
-          text = "Refresh All",
-          iconProps = list(iconName = "Refresh")
-        )
       )
     ),
     
@@ -57,10 +151,7 @@ dataModuleUI <- function(id) {
           br(),
           div(class = "simple-table-container",
             div(class = "table-title",
-              Text("Paid Claims Data", variant = "large", style = list(fontWeight = "500")),
-              downloadButton(ns("downloadPaid"), "Download Excel", 
-                           class = "btn btn-primary", 
-                           style = "background-color: #0078d4; border: none;")
+              Text("Paid Claims Data", variant = "large", style = list(fontWeight = "500"))
             ),
             DT::dataTableOutput(ns("paidTable"))
           )
@@ -70,17 +161,14 @@ dataModuleUI <- function(id) {
       # Outstanding Claims Tab
       PivotItem(
         key = "outstanding",
-        headerText = "Outstanding Claims", 
+        headerText = "Outstanding Claims",
         itemIcon = "Warning",
         div(
           uiOutput(ns("outstandingCards")),
           br(),
           div(class = "simple-table-container",
             div(class = "table-title",
-              Text("Outstanding Claims Data", variant = "large", style = list(fontWeight = "500")),
-              downloadButton(ns("downloadOutstanding"), "Download Excel", 
-                           class = "btn btn-primary",
-                           style = "background-color: #0078d4; border: none;")
+              Text("Outstanding Claims Data", variant = "large", style = list(fontWeight = "500"))
             ),
             DT::dataTableOutput(ns("outstandingTable"))
           )
@@ -91,41 +179,41 @@ dataModuleUI <- function(id) {
       PivotItem(
         key = "reported",
         headerText = "Reported Claims",
-        itemIcon = "ReportDocument", 
+        itemIcon = "ReportDocument",
         div(
           uiOutput(ns("reportedCards")),
           br(),
           div(class = "simple-table-container",
             div(class = "table-title",
-              Text("Reported Claims Data", variant = "large", style = list(fontWeight = "500")),
-               downloadButton(ns("downloadReported"), "Download Excel", 
-                           class = "btn btn-primary",
-                           style = "background-color: #0078d4; border: none;")
+              Stack(
+                horizontal = FALSE,
+                Text("Reported Claims Data (Combined)", variant = "large", style = list(fontWeight = "500")),
+                Text("Includes both Paid and Outstanding claims", variant = "small", style = list(color = "#605e5c"))
+              )
             ),
             DT::dataTableOutput(ns("reportedTable"))
           )
         )
       )
     ),
-        div(
-          class = "app-footer",
-          div(class = "footer-content",
-            div(class = "footer-left",
-              tags$span("© 2024 SACOS Group Limited. All rights reserved.")
-            ),
-            div(class = "footer-right",
-              tags$span("Powered by "),
-              tags$img(
-                src = "images/kenbright.png", 
-                alt = "Kenbright AI",
-                class = "footer-logo"
-              ),
-              tags$span(" AI")
-            )
-          )
-        )     
+    div(
+      class = "app-footer",
+      div(class = "footer-content",
+        div(class = "footer-left",
+          tags$span("© 2024 SACOS Group Limited. All rights reserved.")
+        ),
+        div(class = "footer-right",
+          tags$span("Powered by "),
+          tags$img(
+            src = "images/kenbright.png",
+            alt = "Kenbright AI",
+            class = "footer-logo"
+          ),
+          tags$span(" AI")
+        )
+      )
+    )
   )
- 
 }
 
 # Data Module Server
@@ -137,6 +225,10 @@ dataModuleServer <- function(id) {
     outstanding_data <- reactiveVal(NULL)
     reported_data <- reactiveVal(NULL)
     
+    # Upload status reactive values
+    paid_upload_status <- reactiveVal(NULL)
+    outstanding_upload_status <- reactiveVal(NULL)
+    
     # Simple function to create summary cards
     make_summary_cards <- function(data, type) {
       if(is.null(data) || nrow(data) == 0) return(NULL)
@@ -145,14 +237,14 @@ dataModuleServer <- function(id) {
       
       # Calculate amounts based on data type
       if(type == "paid") {
-        main_amount <- sum(data$`Amount Paid`, na.rm = TRUE)
+        main_amount <- sum(data$`Gross Amount`, na.rm = TRUE)
         net_amount <- sum(data$`Net Amount`, na.rm = TRUE) 
         avg_amount <- mean(data$`Net Amount`, na.rm = TRUE)
         main_label <- "Total Paid"
         icon_name <- "Money"
         icon_color <- "#107c10"
       } else if(type == "outstanding") {
-        main_amount <- sum(data$`Amount O/S`, na.rm = TRUE)
+        main_amount <- sum(data$`Gross Amount`, na.rm = TRUE)
         net_amount <- sum(data$`Net Amount`, na.rm = TRUE)
         avg_amount <- mean(data$`Net Amount`, na.rm = TRUE)
         main_label <- "Total Outstanding"
@@ -179,21 +271,21 @@ dataModuleServer <- function(id) {
         div(class = "summary-card",
           Icon(iconName = icon_name, style = list(fontSize = "24px", color = icon_color)),
           div(
-            div(class = "card-number", paste0("$", format(round(main_amount/1000000, 1), big.mark = ","), "M")),
+            div(class = "card-number", paste0("SCR ", format(round(main_amount/1000000, 1), big.mark = ","), "M")),
             div(class = "card-label", main_label)
           )
         ),
         div(class = "summary-card",
           Icon(iconName = "CalculatorAddition", style = list(fontSize = "24px", color = "#8764b8")),
           div(
-            div(class = "card-number", paste0("$", format(round(net_amount/1000000, 1), big.mark = ","), "M")),
+            div(class = "card-number", paste0("SCR ", format(round(net_amount/1000000, 1), big.mark = ","), "M")),
             div(class = "card-label", if(type == "reported") "Net Claims" else "Net Amount")
           )
         ),
         div(class = "summary-card",
           Icon(iconName = "BarChart4", style = list(fontSize = "24px", color = "#6264a7")),
           div(
-            div(class = "card-number", paste0("$", format(round(avg_amount/1000, 0), big.mark = ","), "K")),
+            div(class = "card-number", paste0("SCR ", format(round(avg_amount/1000, 0), big.mark = ","), "K")),
             div(class = "card-label", "Average")
           )
         )
@@ -204,7 +296,7 @@ dataModuleServer <- function(id) {
     make_data_table <- function(data, type) {
       if(is.null(data)) {
         return(DT::datatable(
-          data.frame(Message = paste("No", type, "data available")), 
+          data.frame(Message = paste("No", type, "data available. Please upload data files above.")), 
           options = list(dom = 't'), rownames = FALSE
         ))
       }
@@ -213,7 +305,7 @@ dataModuleServer <- function(id) {
       if(type == "paid") {
         currency_cols <- c(9, 10, 11)  # Amount Paid, RI Amount, Net Amount
       } else if(type == "outstanding") {
-        currency_cols <- c(9, 10, 11, 12)  # Amount O/S, Gross OS Claims Adjusted, Reinsurance, Net Amount
+        currency_cols <- c(9, 10, 11)  # Amount O/S, Gross OS Claims Adjusted, Reinsurance, Net Amount
       } else { # reported
         currency_cols <- c(9, 10, 11, 12)  # Gross Amount, Gross Claims Adjusted, RI Amount, Net Claims
       }
@@ -229,7 +321,7 @@ dataModuleServer <- function(id) {
             list(targets = currency_cols, render = JS(
               "function(data, type, full, meta) {",
               "  if(type === 'display' && data != null) {",
-              "    return '$' + parseFloat(data).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
+              "    return 'SCR' + parseFloat(data).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
               "  }",
               "  return data;",
               "}"
@@ -251,46 +343,269 @@ dataModuleServer <- function(id) {
       )
     }
     
-    # Load all data when app starts
+    # Function to combine paid and outstanding data to create reported data
+    combine_to_reported <- function(paid, outstanding) {
+      if(is.null(paid) && is.null(outstanding)) return(NULL)
+      
+      # Prepare paid data for combination
+      paid_for_reported <- NULL
+      if(!is.null(paid) && nrow(paid) > 0) {
+        # Check which date columns exist and use appropriate ones
+        paid_for_reported <- paid %>%
+          mutate(
+            # Handle different possible column names
+            `Transaction Date` = if("Paid Date" %in% names(.)) `Paid Date` 
+                                else if("Transaction Date" %in% names(.)) `Transaction Date`
+                                else if("Paid Year" %in% names(.)) as.Date(paste0(`Paid Year`, "-01-01"))
+                                else as.Date(NA),
+            `Notification Date` = if("Reported Date" %in% names(.)) `Reported Date`
+                                 else if("Notification Date" %in% names(.)) `Notification Date`
+                                 else `Loss Date`,
+            `Gross Amount` = `Gross Amount`,
+            `RI Amount` = `RI Amount`,
+            `Net Claims` = `Net Amount`,
+            Claim_Type = "Paid",
+            # Ensure all required columns exist
+            `Business Class` = if("Business Class" %in% names(.)) `Business Class` else CLASS
+          )
+      }
+      
+      # Prepare outstanding data for combination
+      outstanding_for_reported <- NULL
+      if(!is.null(outstanding) && nrow(outstanding) > 0) {
+        # Check for Gross OS Claims Adjusted column
+        
+        outstanding_for_reported <- outstanding %>%
+          mutate(
+            # Create Transaction Date as NA for outstanding claims
+            `Transaction Date` = as.Date(NA),
+            `Notification Date` = if("Reported Date" %in% names(.)) `Reported Date`
+                                 else if("Notification Date" %in% names(.)) `Notification Date`
+                                 else `Loss Date`,
+            `Gross Amount` = `Gross Amount`,
+            `RI Amount` = if("Reinsurance" %in% names(.)) `Reinsurance` else 0,
+            `Net Claims` = `Net Amount`,
+            Claim_Type = "Outstanding",
+            # Ensure all required columns exist
+            `Business Class` = if("Business Class" %in% names(.)) `Business Class` else CLASS
+          )
+      }
+      
+      # Get common columns
+      if(!is.null(paid_for_reported) && !is.null(outstanding_for_reported)) {
+        common_cols <- intersect(names(paid_for_reported), names(outstanding_for_reported))
+        paid_for_reported <- paid_for_reported[, common_cols]
+        outstanding_for_reported <- outstanding_for_reported[, common_cols]
+      }
+      
+      # Combine the datasets
+      combined <- bind_rows(paid_for_reported, outstanding_for_reported)
+      
+      # Apply the reported data transformations
+      if(!is.null(combined) && nrow(combined) > 0) {
+        combined <- combined %>%
+          mutate(
+            Paid_Year = year(`Transaction Date`),
+            Loss_Year = year(`Loss Date`),
+            Reported_Year = year(`Notification Date`),
+            Reporting_Delay = pmax(0, floor(as.numeric(difftime(`Notification Date`, `Loss Date`, units = "days")) / 90)),
+            Reporting_Delay_Years = pmax(0, floor(as.numeric(difftime(`Notification Date`, `Loss Date`, units = "days")) / 365)),
+            Runique = ifelse(!duplicated(`Claim No`), 1, 0)
+          ) %>%
+          arrange(desc(`Transaction Date`), `Claim No`)
+      }
+      
+      return(combined)
+    }
+    
+    # Process paid claims upload
+    observeEvent(input$uploadPaid, {
+      req(input$uploadPaid)
+      
+      tryCatch({
+        # Read the file
+        paid <- read_excel(input$uploadPaid$datapath)
+        colnames(paid) <- trimws(colnames(paid))
+        colnames(paid) <- recode(colnames(paid),
+          "Gross Amount" = "Gross Amount",
+          "RI Amount"    = "RI Amount",
+          "Net Amount"   = "Net Amount",
+          "Loss Date"    = "Loss Date",
+          "Reported Date"= "Reported Date",
+          "Paid Date"    = "Paid Date",
+          "Claim No"     = "Claim No",
+          "Business Class" = "Business Class"
+        )        
+        # Detect and rename date columns if needed
+        date_columns <- c("Loss Date", "Notification Date", "Transaction Date", "Paid Date", "Reported Date")
+        for(col in date_columns) {
+          if(col %in% names(paid)) {
+            paid[[col]] <- as.Date(paid[[col]], origin = "1899-12-30")
+          }
+        }
+        
+        # Apply transformations based on available columns
+        paid <- paid %>%
+          mutate(
+            Paid_Year = if("Paid Date" %in% names(.)) year(`Paid Date`) 
+                       else if("Transaction Date" %in% names(.)) year(`Transaction Date`)
+                       else if("Paid Year" %in% names(.)) `Paid Year`
+                       else NA,
+            Loss_Year = if("Loss Date" %in% names(.)) year(`Loss Date`) else NA,
+            Notification_Year = if("Reported Date" %in% names(.)) year(`Reported Date`)
+                               else if("Notification Date" %in% names(.)) year(`Notification Date`)
+                               else NA,
+            Loss_Year_Loss_Quarter = if("Loss Date" %in% names(.)) 
+                                    paste0(year(`Loss Date`), "Q", ceiling(month(`Loss Date`) / 3))
+                                    else NA,
+            Unique = ifelse(!duplicated(`Claim No`), 1, 0)
+          )
+        
+        paid_data(paid)
+        paid_upload_status(list(
+          status = "success",
+          message = paste("Successfully loaded", nrow(paid), "paid claims"),
+          filename = input$uploadPaid$name
+        ))
+        showNotification(paste("Loaded", nrow(paid), "paid claims from", input$uploadPaid$name), type = "message", duration = 3)
+        
+      }, error = function(e) {
+        paid_upload_status(list(
+          status = "error",
+          message = paste("Error:", e$message),
+          filename = input$uploadPaid$name
+        ))
+        showNotification(paste("Error loading paid claims:", e$message), type = "error")
+      })
+    })
+    
+    # Process outstanding claims upload
+    observeEvent(input$uploadOutstanding, {
+      req(input$uploadOutstanding)
+      
+      tryCatch({
+        # Read the file
+        outstanding <- read_excel(input$uploadOutstanding$datapath)
+        colnames(outstanding) <- trimws(colnames(outstanding))
+        colnames(outstanding) <- recode(colnames(outstanding),
+          "Gross Amount" = "Gross Amount",
+          "RI Amount"    = "RI Amount",
+          "Net Amount"   = "Net Amount",
+          "Loss Date"    = "Loss Date",
+          "Reported Date"= "Reported Date",
+          "Paid Date"    = "Paid Date",
+          "Claim No"     = "Claim No",
+          "Business Class" = "Business Class"
+        )
+        # Detect and rename date columns if needed
+        date_columns <- c("Loss Date", "Notification Date", "Reported Date")
+        for(col in date_columns) {
+          if(col %in% names(outstanding)) {
+            outstanding[[col]] <- as.Date(outstanding[[col]], origin = "1899-12-30")
+          }
+        }
+        
+        # Apply transformations
+        outstanding <- outstanding %>%
+          mutate(
+            Loss_Year = if("Loss Date" %in% names(.)) year(`Loss Date`) else NA,
+            Notification_Year = if("Reported Date" %in% names(.)) year(`Reported Date`)
+                               else if("Notification Date" %in% names(.)) year(`Notification Date`)
+                               else NA,
+            Loss_Year_Loss_Quarter = if("Loss Date" %in% names(.)) 
+                                    paste0(year(`Loss Date`), "Q", ceiling(month(`Loss Date`) / 3))
+                                    else NA,
+            Unique = ifelse(!duplicated(`Claim No`), 1, 0)
+          )
+        
+        outstanding_data(outstanding)
+        outstanding_upload_status(list(
+          status = "success",
+          message = paste("Successfully loaded", nrow(outstanding), "outstanding claims"),
+          filename = input$uploadOutstanding$name
+        ))
+        showNotification(paste("Loaded", nrow(outstanding), "outstanding claims from", input$uploadOutstanding$name), type = "message", duration = 3)
+        
+      }, error = function(e) {
+        outstanding_upload_status(list(
+          status = "error",
+          message = paste("Error:", e$message),
+          filename = input$uploadOutstanding$name
+        ))
+        showNotification(paste("Error loading outstanding claims:", e$message), type = "error")
+      })
+    })
+    
+    # Update reported data when paid or outstanding data changes
     observe({
-      # Load Paid Claims
-      if(file.exists("Data/Paid Claims.xlsx")) {
-        tryCatch({
-          paid <- read_excel("Data/Paid Claims.xlsx")
-          paid_data(paid)
-        }, error = function(e) {
-          showNotification(paste("Error loading paid claims:", e$message), type = "error")
-        })
-      }
+      paid <- paid_data()
+      outstanding <- outstanding_data()
       
-      # Load Outstanding Claims
-      if(file.exists("Data/Outstanding Claims.xlsx")) {
+      if(!is.null(paid) || !is.null(outstanding)) {
         tryCatch({
-          outstanding <- read_excel("Data/Outstanding Claims.xlsx")
-          outstanding_data(outstanding)
-        }, error = function(e) {
-          showNotification(paste("Error loading outstanding claims:", e$message), type = "error")
-        })
-      }
-      
-      # Load Reported Claims
-      if(file.exists("Data/Reported Claims.xlsx")) {
-        tryCatch({
-          reported <- read_excel("Data/Reported Claims.xlsx")
+          reported <- combine_to_reported(paid, outstanding)
           reported_data(reported)
+          
+          if(!is.null(reported)) {
+            showNotification(
+              paste("Reported data created:", nrow(reported), "total claims"), 
+              type = "message", 
+              duration = 3
+            )
+          }
         }, error = function(e) {
-          showNotification(paste("Error loading reported claims:", e$message), type = "error")
+          showNotification(paste("Error creating reported data:", e$message), type = "error")
         })
       }
     })
     
-    # Refresh all data
-    observeEvent(input$refreshData, {
-      showNotification("Refreshing all data...", type = "message")
+    # Clear all data
+    observeEvent(input$clearData, {
       paid_data(NULL)
       outstanding_data(NULL) 
       reported_data(NULL)
-      invalidateLater(1000)
+      paid_upload_status(NULL)
+      outstanding_upload_status(NULL)
+      showNotification("All data cleared", type = "message", duration = 2)
+    })
+    
+    # Upload status outputs
+    output$paidUploadStatus <- renderUI({
+      status <- paid_upload_status()
+      if(!is.null(status)) {
+        if(status$status == "success") {
+          div(
+            style = list(fontSize = "12px", color = "#107c10"),
+            Icon(iconName = "CheckMark", style = list(fontSize = "12px")),
+            tags$span(style = list(marginLeft = "5px"), status$filename)
+          )
+        } else {
+          div(
+            style = list(fontSize = "12px", color = "#d13438"),
+            Icon(iconName = "ErrorBadge", style = list(fontSize = "12px")),
+            tags$span(style = list(marginLeft = "5px"), status$message)
+          )
+        }
+      }
+    })
+    
+    output$outstandingUploadStatus <- renderUI({
+      status <- outstanding_upload_status()
+      if(!is.null(status)) {
+        if(status$status == "success") {
+          div(
+            style = list(fontSize = "12px", color = "#107c10"),
+            Icon(iconName = "CheckMark", style = list(fontSize = "12px")),
+            tags$span(style = list(marginLeft = "5px"), status$filename)
+          )
+        } else {
+          div(
+            style = list(fontSize = "12px", color = "#d13438"),
+            Icon(iconName = "ErrorBadge", style = list(fontSize = "12px")),
+            tags$span(style = list(marginLeft = "5px"), status$message)
+          )
+        }
+      }
     })
     
     # Status outputs
@@ -299,7 +614,7 @@ dataModuleServer <- function(id) {
         Text(paste("✓", format(nrow(paid_data()), big.mark = ","), "records"), 
              style = list(color = "#107c10", fontSize = "12px"))
       } else {
-        Text("⚠ No data", style = list(color = "#d13438", fontSize = "12px"))
+        Text("⚠ No data uploaded", style = list(color = "#d13438", fontSize = "12px"))
       }
     })
     
@@ -308,16 +623,19 @@ dataModuleServer <- function(id) {
         Text(paste("✓", format(nrow(outstanding_data()), big.mark = ","), "records"), 
              style = list(color = "#107c10", fontSize = "12px"))
       } else {
-        Text("⚠ No data", style = list(color = "#d13438", fontSize = "12px"))
+        Text("⚠ No data uploaded", style = list(color = "#d13438", fontSize = "12px"))
       }
     })
     
     output$reportedStatus <- renderUI({
       if(!is.null(reported_data())) {
-        Text(paste("✓", format(nrow(reported_data()), big.mark = ","), "records"), 
+        paid_count <- sum(reported_data()$Claim_Type == "Paid", na.rm = TRUE)
+        outstanding_count <- sum(reported_data()$Claim_Type == "Outstanding", na.rm = TRUE)
+        Text(paste("✓", format(nrow(reported_data()), big.mark = ","), "records",
+                   paste0("(", paid_count, " paid, ", outstanding_count, " outstanding)")), 
              style = list(color = "#107c10", fontSize = "12px"))
       } else {
-        Text("⚠ No data", style = list(color = "#d13438", fontSize = "12px"))
+        Text("⚠ No data generated", style = list(color = "#d13438", fontSize = "12px"))
       }
     })
     
@@ -347,90 +665,7 @@ dataModuleServer <- function(id) {
       make_data_table(reported_data(), "reported")
     })
     
-    # Download handlers for actual file downloads
-    output$downloadPaid <- downloadHandler(
-      filename = function() {
-        paste("SACOS_Paid_Claims_", Sys.Date(), ".xlsx", sep = "")
-      },
-      content = function(file) {
-        if(!is.null(paid_data())) {
-          tryCatch({
-            # Create a temporary workbook
-            wb <- openxlsx::createWorkbook()
-            openxlsx::addWorksheet(wb, "Paid Claims")
-            openxlsx::writeData(wb, "Paid Claims", paid_data())
-            
-            # Add some basic formatting
-            openxlsx::addStyle(wb, "Paid Claims", 
-                             style = openxlsx::createStyle(textDecoration = "bold"),
-                             rows = 1, cols = 1:ncol(paid_data()))
-            
-            # Save the file
-            openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
-            
-            showNotification("Paid claims data exported successfully!", type = "message")
-          }, error = function(e) {
-            showNotification(paste("Export error:", e$message), type = "error")
-          })
-        } else {
-          showNotification("No paid claims data to export", type = "warning")
-        }
-      }
-    )
-    
-    output$downloadOutstanding <- downloadHandler(
-      filename = function() {
-        paste("SACOS_Outstanding_Claims_", Sys.Date(), ".xlsx", sep = "")
-      },
-      content = function(file) {
-        if(!is.null(outstanding_data())) {
-          tryCatch({
-            wb <- openxlsx::createWorkbook()
-            openxlsx::addWorksheet(wb, "Outstanding Claims")
-            openxlsx::writeData(wb, "Outstanding Claims", outstanding_data())
-            
-            openxlsx::addStyle(wb, "Outstanding Claims", 
-                             style = openxlsx::createStyle(textDecoration = "bold"),
-                             rows = 1, cols = 1:ncol(outstanding_data()))
-            
-            openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
-            
-            showNotification("Outstanding claims data exported successfully!", type = "message")
-          }, error = function(e) {
-            showNotification(paste("Export error:", e$message), type = "error")
-          })
-        } else {
-          showNotification("No outstanding claims data to export", type = "warning")
-        }
-      }
-    )
-    
-    output$downloadReported <- downloadHandler(
-      filename = function() {
-        paste("SACOS_Reported_Claims_", Sys.Date(), ".xlsx", sep = "")
-      },
-      content = function(file) {
-        if(!is.null(reported_data())) {
-          tryCatch({
-            wb <- openxlsx::createWorkbook()
-            openxlsx::addWorksheet(wb, "Reported Claims")
-            openxlsx::writeData(wb, "Reported Claims", reported_data())
-            
-            openxlsx::addStyle(wb, "Reported Claims", 
-                             style = openxlsx::createStyle(textDecoration = "bold"),
-                             rows = 1, cols = 1:ncol(reported_data()))
-            
-            openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
-            
-            showNotification("Reported claims data exported successfully!", type = "message")
-          }, error = function(e) {
-            showNotification(paste("Export error:", e$message), type = "error")
-          })
-        } else {
-          showNotification("No reported claims data to export", type = "warning")
-        }
-      }
-    )    
+
     # Return all data for other modules
     return(list(
       paid = paid_data,
