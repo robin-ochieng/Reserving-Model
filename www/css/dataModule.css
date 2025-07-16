@@ -113,3 +113,411 @@
   align-items: center;
   margin-bottom: 15px;
 }
+
+
+
+/* Enhanced Upload Section with Modern Design */
+.upload-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%) !important;
+  padding: 30px !important;
+  border-radius: 16px !important;
+  margin-bottom: 30px !important;
+  border: 1px solid rgba(0, 120, 212, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative background pattern */
+.upload-section::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(0, 120, 212, 0.05) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Upload cards with glassmorphism effect */
+.upload-section > div > div[style*="display: flex"] > div {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(225, 225, 225, 0.5);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover effect with elevation */
+.upload-section > div > div[style*="display: flex"] > div:hover {
+  transform: translateY(-4px);
+  border-color: #0078d4;
+  box-shadow: 0 12px 24px rgba(0, 120, 212, 0.15);
+}
+
+/* Icon animations */
+.upload-section .ms-Icon {
+  transition: transform 0.3s ease;
+}
+
+.upload-section > div > div[style*="display: flex"] > div:hover .ms-Icon {
+  transform: scale(1.1);
+}
+
+/* Modern button design */
+.upload-section .btn-file {
+  background: linear-gradient(135deg, #0078d4 0%, #005ba1 100%);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-section .btn-file::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.upload-section .btn-file:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Success animation */
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.upload-section div[style*="color: #107c10"] .ms-Icon {
+  animation: successPulse 0.5s ease;
+}
+
+/* Loading state for future implementation */
+.upload-loading {
+  position: relative;
+}
+
+.upload-loading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+/* Drag and drop area (for future enhancement) */
+.drag-drop-area {
+  border: 2px dashed #0078d4;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.drag-drop-area:hover {
+  background-color: rgba(0, 120, 212, 0.05);
+  border-color: #005ba1;
+}
+
+.drag-drop-area.dragging {
+  background-color: rgba(0, 120, 212, 0.1);
+  border-color: #0078d4;
+  transform: scale(1.02);
+}
+
+
+/* Professional File Upload Styling */
+.custom-file-upload-area {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  border: 2px dashed #e1e1e1 !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover effect */
+.custom-file-upload-area:hover {
+  border-color: #0078d4 !important;
+  background: linear-gradient(135deg, #f0f6ff 0%, #e6f1ff 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.15);
+}
+
+/* Active/clicking effect */
+.custom-file-upload-area:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 120, 212, 0.1);
+}
+
+/* Drag over effect */
+.custom-file-upload-area.drag-over {
+  border-color: #0078d4 !important;
+  background: rgba(0, 120, 212, 0.05) !important;
+  border-width: 3px !important;
+}
+
+/* Upload icon animation */
+.custom-file-upload-area .ms-Icon-CloudUpload {
+  transition: all 0.3s ease;
+}
+
+.custom-file-upload-area:hover .ms-Icon-CloudUpload {
+  transform: translateY(-3px) scale(1.1);
+  color: #005ba1 !important;
+}
+
+/* File name styling */
+.custom-file-upload-area .ms-Text--small:last-child {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0 auto;
+}
+
+/* Success state after file selection */
+.custom-file-upload-area.has-file {
+  border-color: #107c10 !important;
+  background: linear-gradient(135deg, #f0faf0 0%, #e6f5e6 100%) !important;
+}
+
+/* Excel icon styling */
+.upload-section .ms-Icon-ExcelDocument {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Upload status improvements */
+.upload-section div[style*="fontSize: 12px"] {
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: rgba(16, 124, 16, 0.05);
+  border: 1px solid rgba(16, 124, 16, 0.2);
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.upload-section div[style*="fontSize: 12px"] .ms-Icon {
+  margin-right: 6px !important;
+  font-size: 14px !important;
+}
+
+/* Error status with better visibility */
+.upload-section div[style*="color: #d13438"] {
+  background: rgba(209, 52, 56, 0.05) !important;
+  border: 1px solid rgba(209, 52, 56, 0.2) !important;
+}
+
+/* Section headers with icons */
+.upload-section .ms-Stack .ms-Icon-ExcelDocument + .ms-Text {
+  color: #323130;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .custom-file-upload-area {
+    padding: 16px !important;
+  }
+  
+  .custom-file-upload-area .ms-Icon-CloudUpload {
+    font-size: 28px !important;
+  }
+}
+
+/* Additional animation for file drop */
+@keyframes dropBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.custom-file-upload-area.file-dropped {
+  animation: dropBounce 0.3s ease;
+}
+
+/* Progress indicator placeholder */
+.upload-progress-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 120, 212, 0.2);
+  overflow: hidden;
+}
+
+.upload-progress-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: #0078d4;
+  animation: progressSlide 1.5s infinite;
+}
+
+@keyframes progressSlide {
+  to { left: 100%; }
+}
+
+
+/* Hide the default Shiny file input completely */
+.custom-file-upload-area .form-group,
+.custom-file-upload-area .shiny-input-container {
+  display: none !important;
+}
+
+/* Ensure drag-over effect is visible */
+.custom-file-upload-area.drag-over {
+  border-color: #0078d4 !important;
+  background: rgba(0, 120, 212, 0.05) !important;
+  border-width: 3px !important;
+}
+
+/* File selected state */
+.custom-file-upload-area.has-file {
+  border-color: #107c10 !important;
+  background: linear-gradient(135deg, #f0faf0 0%, #e6f5e6 100%) !important;
+}
+
+
+/* Custom File Upload Wrapper */
+.custom-file-wrapper {
+  position: relative;
+}
+
+/* Hide the default label */
+.custom-file-wrapper label {
+  display: none !important;
+}
+
+/* Style the entire file input container */
+.custom-file-wrapper .form-group {
+  margin-bottom: 0;
+}
+
+/* Style the file input area to look like a drop zone */
+.custom-file-wrapper .input-group {
+  border: 2px dashed #d1d1d1;
+  border-radius: 8px;
+  padding: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  transition: all 0.3s ease;
+  text-align: center;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hover effect */
+.custom-file-wrapper .input-group:hover {
+  border-color: #0078d4;
+  background: linear-gradient(135deg, #f0f6ff 0%, #e6f1ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.15);
+}
+
+/* Style the browse button */
+.custom-file-wrapper .btn-file {
+  background: #0078d4;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-bottom: 10px;
+}
+
+.custom-file-wrapper .btn-file:hover {
+  background: #106ebe;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 120, 212, 0.2);
+}
+
+/* Style the file name display */
+.custom-file-wrapper .form-control {
+  border: none;
+  background: transparent;
+  text-align: center;
+  color: #605e5c;
+  font-size: 14px;
+  padding: 8px;
+  box-shadow: none;
+}
+
+/* When file is selected */
+.custom-file-wrapper .input-group:has(.form-control[value]:not([value=""])) {
+  border-color: #107c10;
+  background: linear-gradient(135deg, #f0faf0 0%, #e6f5e6 100%);
+}
+
+/* Add drop zone text */
+.custom-file-wrapper .input-group::before {
+  content: "Drop Excel file here or";
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #605e5c;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* Progress bar styling */
+.custom-file-wrapper .progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  margin: 0;
+  border-radius: 0 0 6px 6px;
+  background-color: rgba(0, 120, 212, 0.1);
+}
+
+.custom-file-wrapper .progress-bar {
+  background-color: #0078d4;
+  transition: width 0.3s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .custom-file-wrapper .input-group {
+    padding: 16px;
+    min-height: 80px;
+  }
+  
+  .custom-file-wrapper .input-group::before {
+    font-size: 12px;
+  }
+}
+
+/* File upload status messages */
+.custom-file-wrapper + div[style*="fontSize: 12px"] {
+  margin-top: 8px;
+}
