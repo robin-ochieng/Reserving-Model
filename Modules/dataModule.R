@@ -1,11 +1,5 @@
 # Data Module UI with File Upload
-# Required libraries
-library(shiny)
-library(shiny.fluent)
-library(DT)
-library(readxl)
-library(dplyr)
-library(lubridate) # For year() function
+
 
 dataModuleUI <- function(id) {
   ns <- NS(id)
