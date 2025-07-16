@@ -1,20 +1,23 @@
 # SACOS Group Limited - Reserving Model Application
 # Using Shiny Fluent for modern UI components
 
+# app.R
 # Load required libraries
 library(shiny)
 library(shiny.fluent)
 library(htmltools)
 library(DT)
+library(shinycssloaders)
 library(readxl)
 library(shinyjs)
 library(dplyr)
-
+library(tidyverse) 
+library(lubridate)
+library(plotly)
 
 # Load custom modules
 source("Modules/landingPageModule.R")
 source("Modules/dataModule.R")
-source("Modules/dashboardModule.R")
 source("Modules/claimPlotsModule.R")
 source("Modules/reportedDataModule.R")
 
@@ -26,6 +29,7 @@ ui <- fluidPage(
     tags$link(rel = "stylesheet", href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"),
     tags$link(rel = "icon", type = "image/x-icon", href = "favicon/saccos_logo.ico"),
     tags$link(rel = "shortcut icon", type = "image/x-icon", href = "favicon/saccos_logo.ico"),
+    tags$link(rel = "stylesheet", type = "text/css", href = "css/claimPlots.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/custom_styles.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/landingPage.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/dataModule.css"),
@@ -40,7 +44,10 @@ ui <- fluidPage(
         link.click();
         document.body.removeChild(link);
       });
-    "))
+    ")),
+  
+  # Include external custom JavaScript file
+  tags$script(src = "js/customjs.js")
   ),
   
   div(class = "main-container",
@@ -59,12 +66,6 @@ ui <- fluidPage(
         headerText = "Data",
         itemIcon = "Database",
         dataModuleUI("data")
-      ),
-      PivotItem(
-        key = "dashboard",
-        headerText = "Dashboard", 
-        itemIcon = "ViewDashboard",
-        dashboardModuleUI("dashboard")
       ),
       PivotItem(
         key = "plots",
@@ -86,9 +87,8 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   # Initialize modules
   landingPageServer("landing")
-  dataModuleServer("data")
-  dashboardModuleServer("dashboard")
-  claimPlotsModuleServer("plots")
+  data_module <- dataModuleServer("data")
+  claimPlotsModuleServer("plots", data_module = data_module)
   reportedDataModuleServer("reported")
 }
 
