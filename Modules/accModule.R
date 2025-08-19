@@ -24,7 +24,7 @@ accModuleUI <- function(id) {
         Separator(),
         Text("Incremental Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
         div(class = "simple-table-container",
-          DT::dataTableOutput(ns("accTriangle"))
+          verbatimTextOutput(ns("accTriangleText"))
         )
       )
     ),
@@ -248,22 +248,32 @@ accModuleServer <- function(id, data_module) {
       tri
     })
 
-    output$accTriangle <- DT::renderDataTable({
+    output$accTriangleText <- renderText({
       tri <- triangle_data()
       if (is.null(tri) || nrow(tri) == 0) {
-        return(DT::datatable(data.frame(Message = "Triangle not available for ACC."), options = list(dom = 't'), rownames = FALSE))
+        return("Triangle not available for ACC.")
       }
-      DT::datatable(
-        tri,
-        options = list(
-          pageLength = 20,
-          scrollX = TRUE,
-          scrollY = "360px",
-          searching = FALSE
-        ),
-        class = 'cell-border stripe hover',
-        rownames = FALSE
-      )
+      # Pretty print with fixed-width columns
+      # Format numbers with comma separators and no scientific notation
+      fmt_num <- function(x) {
+        ifelse(is.na(x), "", format(x, big.mark = ",", scientific = FALSE, trim = TRUE))
+      }
+      tri_fmt <- tri
+      num_cols <- which(sapply(tri_fmt, is.numeric))
+      tri_fmt[num_cols] <- lapply(tri_fmt[num_cols], fmt_num)
+
+      # Build header
+      cols <- names(tri_fmt)
+      # Compute widths: max of header and column values
+      widths <- vapply(seq_along(cols), function(i) {
+        max(nchar(cols[i]), max(nchar(as.character(tri_fmt[[i]])), na.rm = TRUE))
+      }, integer(1))
+
+      pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
+      header <- paste(mapply(pad, cols, widths), collapse = "  ")
+      sep <- paste(mapply(function(w) paste(rep("-", w), collapse = ""), widths), collapse = "  ")
+      rows <- apply(tri_fmt, 1, function(r) paste(mapply(pad, r, widths), collapse = "  "))
+      paste(c(header, sep, rows), collapse = "\n")
     })
 
     current_view <- reactive({
