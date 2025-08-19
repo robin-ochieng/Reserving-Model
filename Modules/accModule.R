@@ -193,11 +193,21 @@ accModuleServer <- function(id, data_module) {
         if (all(is.na(loss_quarter))) loss_quarter <- suppressWarnings(lubridate::quarter(ld))
       }
 
-      # Fallbacks
-      loss_year[is.na(loss_year)] <- NA_integer_
-      loss_quarter[is.na(loss_quarter)] <- 1L
+  # Fallbacks
+  loss_year[is.na(loss_year)] <- NA_integer_
+  loss_quarter[is.na(loss_quarter)] <- 1L
 
-      origin <- paste0(loss_year, "-Q", loss_quarter)
+  # Cap origins to start from 2013-Q1
+  min_idx <- 2013L * 4L + 1L
+  idx <- loss_year * 4L + as.integer(loss_quarter)
+  keep_origin <- !is.na(idx) & idx >= min_idx
+  if (!any(keep_origin)) return(NULL)
+  # Filter dataset and aligned vectors before proceeding
+  dat <- dat[keep_origin, , drop = FALSE]
+  loss_year <- loss_year[keep_origin]
+  loss_quarter <- loss_quarter[keep_origin]
+
+  origin <- paste0(loss_year, "-Q", loss_quarter)
 
       # Derive Reported Delay (in quarters)
       if ("Reported_Delay" %in% names(dat)) {
