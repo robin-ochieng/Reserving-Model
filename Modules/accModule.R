@@ -23,6 +23,10 @@ accModuleUI <- function(id) {
         ),
         Separator(),
         Text("Incremental Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
+        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
+          downloadButton(ns("download_triangle_csv"), "Download Triangle CSV"),
+          downloadButton(ns("download_triangle_xlsx"), "Download Triangle Excel")
+        ),
         div(class = "simple-table-container",
           verbatimTextOutput(ns("accTriangleText"))
         )
@@ -335,6 +339,32 @@ accModuleServer <- function(id, data_module) {
           writexl::write_xlsx(dat, path = file)
         } else if (requireNamespace("openxlsx", quietly = TRUE)) {
           openxlsx::write.xlsx(dat, file)
+        } else {
+          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
+        }
+      }
+    )
+
+    # Triangle downloads (CSV / Excel)
+    output$download_triangle_csv <- downloadHandler(
+      filename = function() paste0("acc_triangle_", Sys.Date(), ".csv"),
+      content = function(file) {
+        tri <- triangle_data()
+        if (is.null(tri) || nrow(tri) == 0) stop("Triangle not available for ACC.")
+        utils::write.csv(tri, file, row.names = FALSE, na = "")
+      },
+      contentType = "text/csv"
+    )
+
+    output$download_triangle_xlsx <- downloadHandler(
+      filename = function() paste0("acc_triangle_", Sys.Date(), ".xlsx"),
+      content = function(file) {
+        tri <- triangle_data()
+        if (is.null(tri) || nrow(tri) == 0) stop("Triangle not available for ACC.")
+        if (requireNamespace("writexl", quietly = TRUE)) {
+          writexl::write_xlsx(tri, path = file)
+        } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+          openxlsx::write.xlsx(tri, file)
         } else {
           stop("Please install 'writexl' or 'openxlsx' to export Excel.")
         }
