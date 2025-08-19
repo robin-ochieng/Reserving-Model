@@ -20,6 +20,7 @@ source("Modules/landingPageModule.R")
 source("Modules/dataModule.R")
 source("Modules/claimPlotsModule.R")
 source("Modules/reportedDataModule.R")
+source("Modules/accModule.R")
 
 
 # Main UI
@@ -79,6 +80,13 @@ ui <- fluidPage(
         itemIcon = "Table",
         reportedDataModuleUI("reported")
       )
+      ,
+      PivotItem(
+        key = "acc",
+        headerText = "ACC",
+        itemIcon = "Medical",
+        accModuleUI("acc")
+      )
     )
   )
 )
@@ -90,6 +98,7 @@ server <- function(input, output, session) {
   data_module <- dataModuleServer("data")
   claimPlotsModuleServer("plots", data_module = data_module)
   reportedDataModuleServer("reported", data_module = data_module)
+  accModuleServer("acc", data_module = data_module)
 }
 
 # Run the application
