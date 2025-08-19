@@ -41,6 +41,17 @@ accModuleUI <- function(id) {
           div(class = "triangle-box",
             verbatimTextOutput(ns("accTriangleText"))
           )
+        ),
+        Separator(),
+        Text("Cumulative Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
+        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
+          downloadButton(ns("download_cum_triangle_csv"), "Download Cumulative Triangle CSV"),
+          downloadButton(ns("download_cum_triangle_xlsx"), "Download Cumulative Triangle Excel")
+        ),
+        div(class = "simple-table-container",
+          div(class = "triangle-box",
+            verbatimTextOutput(ns("accCumTriangleText"))
+          )
         )
       )
     ),
@@ -261,8 +272,11 @@ accModuleServer <- function(id, data_module) {
 
       if (nrow(agg) == 0) return(NULL)
 
-      dev_levels <- seq.int(0L, max(agg$dev, na.rm = TRUE))
-      full <- tidyr::complete(agg, origin, dev = dev_levels, fill = list(Gross_Amount = 0))
+  # Ensure a square triangle: number of dev periods equals number of origins (rows)
+  n_origins <- length(unique(agg$origin))
+  if (is.na(n_origins) || n_origins < 1) return(NULL)
+  dev_levels <- seq.int(0L, n_origins - 1L)
+  full <- tidyr::complete(agg, origin, dev = dev_levels, fill = list(Gross_Amount = 0))
 
   tri <- tidyr::pivot_wider(full, names_from = dev, values_from = Gross_Amount, values_fill = 0)
   # Round numeric values to 0 decimals
@@ -277,13 +291,34 @@ accModuleServer <- function(id, data_module) {
       tri
     })
 
+    # Helper: pretty-print a triangle (data.frame) similar to incremental printing
+    .pretty_print_triangle <- function(df) {
+      if (is.null(df) || nrow(df) == 0) return(NULL)
+      fmt_num <- function(x) {
+        ifelse(is.na(x), "", format(round(as.numeric(x), 0), big.mark = ",", scientific = FALSE, trim = TRUE, nsmall = 0))
+      }
+      tri_fmt <- df
+      num_cols <- which(sapply(tri_fmt, is.numeric))
+      tri_fmt[num_cols] <- lapply(tri_fmt[num_cols], fmt_num)
+      cols <- names(tri_fmt)
+      widths <- vapply(seq_along(cols), function(i) {
+        max(nchar(cols[i]), max(nchar(as.character(tri_fmt[[i]])), na.rm = TRUE))
+      }, integer(1))
+      pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
+      header <- paste(mapply(pad, cols, widths), collapse = " ")
+      sep <- paste(mapply(function(w) paste(rep("-", w), collapse = ""), widths), collapse = " ")
+      rows <- apply(tri_fmt, 1, function(r) paste(mapply(pad, r, widths), collapse = " "))
+      interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
+      paste(c(header, sep, interleaved), collapse = "\n")
+    }
+
     output$accTriangleText <- renderText({
       tri <- triangle_data()
       if (is.null(tri) || nrow(tri) == 0) {
         return("Triangle not available for ACC.")
       }
       # Pretty print with fixed-width columns
-      # Format numbers with comma separators and no scientific notation
+  # Format numbers with comma separators and no scientific notation
       fmt_num <- function(x) {
         ifelse(is.na(x), "", format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE, nsmall = 0))
       }
@@ -305,6 +340,31 @@ accModuleServer <- function(id, data_module) {
   # Insert horizontal borders between all data rows
   interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
   paste(c(header, sep, interleaved), collapse = "\n")
+    })
+
+    # Build cumulative triangle from incremental triangle
+    cumulative_triangle_data <- reactive({
+      tri <- triangle_data()
+      if (is.null(tri) || nrow(tri) == 0) return(NULL)
+      if (!"origin" %in% names(tri)) return(NULL)
+      # Identify numeric dev columns only (headers are numeric strings after pivot)
+      dev_cols <- setdiff(names(tri), "origin")
+      # Ensure column order by numeric dev
+      dev_order <- order(as.integer(dev_cols))
+      dev_cols <- dev_cols[dev_order]
+      cum <- tri
+      # Row-wise cumulative sum across dev columns
+      cum[dev_cols] <- t(apply(cum[dev_cols], 1, function(r) cumsum(as.numeric(r))))
+      # Round again to 0 decimals (safety)
+      num_cols <- which(sapply(cum, is.numeric))
+      if (length(num_cols)) cum[num_cols] <- lapply(cum[num_cols], function(x) round(x, 0))
+      cum
+    })
+
+    output$accCumTriangleText <- renderText({
+      cum <- cumulative_triangle_data()
+      if (is.null(cum) || nrow(cum) == 0) return("Cumulative triangle not available for ACC.")
+      .pretty_print_triangle(cum)
     })
 
     current_view <- reactive({
@@ -392,6 +452,32 @@ accModuleServer <- function(id, data_module) {
           writexl::write_xlsx(tri, path = file)
         } else if (requireNamespace("openxlsx", quietly = TRUE)) {
           openxlsx::write.xlsx(tri, file)
+        } else {
+          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
+        }
+      }
+    )
+
+    # Cumulative Triangle downloads (CSV / Excel)
+    output$download_cum_triangle_csv <- downloadHandler(
+      filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".csv"),
+      content = function(file) {
+        cum <- cumulative_triangle_data()
+        if (is.null(cum) || nrow(cum) == 0) stop("Cumulative triangle not available for ACC.")
+        utils::write.csv(cum, file, row.names = FALSE, na = "")
+      },
+      contentType = "text/csv"
+    )
+
+    output$download_cum_triangle_xlsx <- downloadHandler(
+      filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".xlsx"),
+      content = function(file) {
+        cum <- cumulative_triangle_data()
+        if (is.null(cum) || nrow(cum) == 0) stop("Cumulative triangle not available for ACC.")
+        if (requireNamespace("writexl", quietly = TRUE)) {
+          writexl::write_xlsx(cum, path = file)
+        } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+          openxlsx::write.xlsx(cum, file)
         } else {
           stop("Please install 'writexl' or 'openxlsx' to export Excel.")
         }
