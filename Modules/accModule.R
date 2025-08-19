@@ -264,7 +264,7 @@ accModuleServer <- function(id, data_module) {
       dev_levels <- seq.int(0L, max(agg$dev, na.rm = TRUE))
       full <- tidyr::complete(agg, origin, dev = dev_levels, fill = list(Gross_Amount = 0))
 
-  tri <- tidyr::pivot_wider(full, names_from = dev, values_from = Gross_Amount, values_fill = 0, names_prefix = "Dev_")
+  tri <- tidyr::pivot_wider(full, names_from = dev, values_from = Gross_Amount, values_fill = 0)
   # Round numeric values to 0 decimals
   num_cols_tri <- which(sapply(tri, is.numeric))
   if (length(num_cols_tri)) tri[num_cols_tri] <- lapply(tri[num_cols_tri], function(x) round(x, 0))
@@ -302,7 +302,9 @@ accModuleServer <- function(id, data_module) {
   header <- paste(mapply(pad, cols, widths), collapse = " ")
   sep <- paste(mapply(function(w) paste(rep("-", w), collapse = ""), widths), collapse = " ")
   rows <- apply(tri_fmt, 1, function(r) paste(mapply(pad, r, widths), collapse = " "))
-      paste(c(header, sep, rows), collapse = "\n")
+  # Insert horizontal borders between all data rows
+  interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
+  paste(c(header, sep, interleaved), collapse = "\n")
     })
 
     current_view <- reactive({
