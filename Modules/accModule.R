@@ -10,6 +10,16 @@ accModuleUI <- function(id) {
         Separator(),
         Text("This view is scoped to Accident Class (ACC). Filters and exports apply to the visible rows.", 
              style = list(color = "#6c757d")),
+        # Triangle styling (scoped by class selector)
+        tags$style(HTML('
+          .triangle-box {
+            border: 1px solid #0137A6; border-radius: 8px; background: #f7faff; padding: 12px; overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          }
+          .triangle-box pre {
+            margin: 0; color: #0137A6; font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.15;
+          }
+        ')),
         div(style = list(marginTop = "10px"),
           Text(outputId = ns("rowCount"), variant = "medium")
         ),
@@ -28,7 +38,9 @@ accModuleUI <- function(id) {
           downloadButton(ns("download_triangle_xlsx"), "Download Triangle Excel")
         ),
         div(class = "simple-table-container",
-          verbatimTextOutput(ns("accTriangleText"))
+          div(class = "triangle-box",
+            verbatimTextOutput(ns("accTriangleText"))
+          )
         )
       )
     ),
@@ -287,9 +299,9 @@ accModuleServer <- function(id, data_module) {
       }, integer(1))
 
       pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
-      header <- paste(mapply(pad, cols, widths), collapse = "  ")
-      sep <- paste(mapply(function(w) paste(rep("-", w), collapse = ""), widths), collapse = "  ")
-      rows <- apply(tri_fmt, 1, function(r) paste(mapply(pad, r, widths), collapse = "  "))
+  header <- paste(mapply(pad, cols, widths), collapse = " ")
+  sep <- paste(mapply(function(w) paste(rep("-", w), collapse = ""), widths), collapse = " ")
+  rows <- apply(tri_fmt, 1, function(r) paste(mapply(pad, r, widths), collapse = " "))
       paste(c(header, sep, rows), collapse = "\n")
     })
 
