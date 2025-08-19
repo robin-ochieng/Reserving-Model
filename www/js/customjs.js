@@ -1,4 +1,4 @@
-// Add this script to handle drag and drop functionality
+// Drag & Drop helpers for file inputs
 $(document).ready(function() {
   // Prevent default drag behaviors
   $(document).on('dragover', function(e) {
@@ -55,38 +55,50 @@ $(document).ready(function() {
   });
 });
 
-  $(document).ready(function() {
-    // Enable drag and drop for file inputs
-    $('.custom-file-wrapper .input-group').each(function() {
-      var $dropZone = $(this);
-      var $fileInput = $dropZone.find('input[type=file]');
-      
-      // Prevent default drag behaviors
-      $dropZone.on('dragover dragenter', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        $(this).addClass('drag-over');
-      });
-      
-      $dropZone.on('dragleave dragend', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        $(this).removeClass('drag-over');
-      });
-      
-      // Handle dropped files
-      $dropZone.on('drop', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        $(this).removeClass('drag-over');
-        
-        var files = e.originalEvent.dataTransfer.files;
-        if (files.length > 0) {
-          // Trigger file input change
-          $fileInput[0].files = files;
-          $fileInput.trigger('change');
-        }
-      });
+// Enable drag-and-drop on Shiny's Bootstrap file inputs inside .custom-file-wrapper
+$(document).ready(function() {
+  $('.custom-file-wrapper .input-group').each(function() {
+    var $dropZone = $(this);
+    var $fileInput = $dropZone.find('input[type=file]');
+    $dropZone.on('dragover dragenter', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      $(this).addClass('drag-over');
+    });
+    $dropZone.on('dragleave dragend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      $(this).removeClass('drag-over');
+    });
+    $dropZone.on('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      $(this).removeClass('drag-over');
+      var files = e.originalEvent.dataTransfer.files;
+      if (files.length > 0) {
+        $fileInput[0].files = files;
+        $fileInput.trigger('change');
+      }
     });
   });
+});
+
+// One-time registration of custom download handler used by Shiny
+if (!window.__saccosDownloadHandlerRegistered) {
+  if (window.Shiny && typeof Shiny.addCustomMessageHandler === 'function') {
+    Shiny.addCustomMessageHandler('downloadFile', function(message) {
+      try {
+        var link = document.createElement('a');
+        link.href = message.dataUri;
+        link.download = message.filename || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        console.error('Download failed', e);
+      }
+    });
+  }
+  window.__saccosDownloadHandlerRegistered = true;
+}
 

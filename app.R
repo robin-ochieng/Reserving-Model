@@ -89,7 +89,7 @@ server <- function(input, output, session) {
   landingPageServer("landing")
   data_module <- dataModuleServer("data")
   claimPlotsModuleServer("plots", data_module = data_module)
-  reportedDataModuleServer("reported")
+  reportedDataModuleServer("reported", data_module = data_module)
 }
 
 # Run the application

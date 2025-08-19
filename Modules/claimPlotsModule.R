@@ -59,11 +59,19 @@ claimPlotsModuleServer <- function(id, data_module) {
     ns <- session$ns
     threshold_values <- reactiveValues(upper = list(), lower = list())
 
+    # Shared thresholds across modules via session$userData
+    if (is.null(session$userData$thresholds_rv)) {
+      session$userData$thresholds_rv <- reactiveVal(list(upper = list(), lower = list()))
+    }
+    update_shared_thresholds <- function() {
+      session$userData$thresholds_rv(list(upper = threshold_values$upper, lower = threshold_values$lower))
+    }
+
     reported_data <- reactive({
-      if (is.null(data_module) || !is.reactive(data_module$reported)) return(NULL)
+      if (is.null(data_module) || is.null(data_module$reported)) return(NULL)
       data <- tryCatch(data_module$reported(), error = function(e) NULL)
       if (is.null(data) || nrow(data) == 0) return(NULL)
-      if (!all(c("Business Class", "Net Claims") %in% names(data))) return(NULL)
+      if (!all(c("Business Class", "Gross Amount") %in% names(data))) return(NULL)
       return(data)
     })
 
@@ -71,10 +79,42 @@ claimPlotsModuleServer <- function(id, data_module) {
       data <- reported_data()
       if (is.null(data)) return(NULL)
       classes <- sort(unique(data$`Business Class`[!is.na(data$`Business Class`)]))
+      fallback <- function(val, default) {
+        if (is.null(val) || (is.atomic(val) && length(val) == 0) || is.na(val)) default else val
+      }
+
+      # Resolve thresholds per class
+      upper <- sapply(classes, function(x) fallback(threshold_values$upper[[x]], 100000))
+      lower <- sapply(classes, function(x) fallback(threshold_values$lower[[x]], -100000))
+
+  # Group Gross Amount by class for efficient per-class calculations
+  class_groups <- split(data$`Gross Amount`, data$`Business Class`)
+      get_vals <- function(cls) { v <- class_groups[[cls]]; if (is.null(v)) numeric(0) else v }
+
+      # Compute extreme counts and excess values
+      extreme_pos_losses <- sapply(seq_along(classes), function(i) {
+        vals <- get_vals(classes[i]); sum(vals > upper[i], na.rm = TRUE)
+      })
+      extreme_neg_losses <- sapply(seq_along(classes), function(i) {
+        vals <- get_vals(classes[i]); sum(vals < lower[i], na.rm = TRUE)
+      })
+      extreme_pos_values <- sapply(seq_along(classes), function(i) {
+        vals <- get_vals(classes[i]); sum(pmax(vals - upper[i], 0), na.rm = TRUE)
+      })
+      extreme_neg_values <- sapply(seq_along(classes), function(i) {
+        varr <- get_vals(classes[i]);
+        below <- varr[varr < lower[i]]
+        sum(below, na.rm = TRUE) - lower[i] * sum(!is.na(below))
+      })
+
       tibble(
         `Class of Business` = classes,
-        `Upper Threshold` = sapply(classes, function(x) threshold_values$upper[[x]] %||% 100000),
-        `Lower Threshold` = sapply(classes, function(x) threshold_values$lower[[x]] %||% -100000)
+        `Upper Threshold` = upper,
+        `Lower Threshold` = lower,
+        `Extreme (+) Losses` = extreme_pos_losses,
+        `Extreme (-) Losses` = extreme_neg_losses,
+        `Extreme (+) Values` = extreme_pos_values,
+        `Extreme (-) Values` = extreme_neg_values
       )
     })
 
@@ -105,6 +145,7 @@ claimPlotsModuleServer <- function(id, data_module) {
         if (is.null(threshold_values$upper[[class]])) threshold_values$upper[[class]] <- 100000
         if (is.null(threshold_values$lower[[class]])) threshold_values$lower[[class]] <- -100000
       }
+  update_shared_thresholds()
     })
 
     observeEvent(input$thresholdTable_cell_edit, {
@@ -116,6 +157,7 @@ claimPlotsModuleServer <- function(id, data_module) {
         if (!is.na(new_value) && info$col == 1) {
           threshold_values$upper[[business_class]] <- new_value
           threshold_values$lower[[business_class]] <- -abs(new_value)
+          update_shared_thresholds()
         }
       }
     })
@@ -124,7 +166,7 @@ claimPlotsModuleServer <- function(id, data_module) {
       data <- reported_data()
       if (is.null(data)) return(NULL)
 
-      selected_class <- input$businessClassFilter %||% "All Classes"
+  selected_class <- if (is.null(input$businessClassFilter) || is.na(input$businessClassFilter)) "All Classes" else input$businessClassFilter
       plot_data <- if (!is.null(selected_class) && selected_class != "All Classes") {
         data %>% filter(`Business Class` == selected_class)
       } else {
@@ -133,28 +175,28 @@ claimPlotsModuleServer <- function(id, data_module) {
 
       if (nrow(plot_data) == 0) return(NULL)
 
-      plot_data <- plot_data %>%
+  plot_data <- plot_data %>%
         mutate(
           index = row_number(),
           hover_text = paste0(
             "<b>Claim #", index, "</b><br>",
-            "Amount: $", format(round(`Net Claims`), big.mark = ",")
+    "Gross Amount: SCR ", format(round(`Gross Amount`), big.mark = ",")
           )
         )
 
-      color_limits <- range(reported_data()$`Net Claims`, na.rm = TRUE)
+      color_limits <- range(reported_data()$`Gross Amount`, na.rm = TRUE)
       upper_threshold <- if (selected_class != "All Classes") threshold_values$upper[[selected_class]] else NULL
       lower_threshold <- if (selected_class != "All Classes") threshold_values$lower[[selected_class]] else NULL
 
       plot_ly(
         data = plot_data,
         x = ~index,
-        y = ~`Net Claims`,
+        y = ~`Gross Amount`,
         type = 'scatter',
-        mode = 'lines',
+        mode = 'markers',
         marker = list(
           size = 10,
-          color = ~`Net Claims`,
+          color = ~`Gross Amount`,
           colorscale = 'RdBu',
           cmin = color_limits[1],
           cmax = color_limits[2],
@@ -165,7 +207,7 @@ claimPlotsModuleServer <- function(id, data_module) {
       ) %>%
           layout(
             title = list(text = paste("Claim Distribution -", selected_class)),
-            yaxis = list(title = "Net Claim Amount ($)", tickformat = "$,.0f"),
+            yaxis = list(title = "Gross Amount (SCR)", tickformat = ",.0f"),
             legend = list(
               orientation = "v",        # vertical legend (or "h" for horizontal)
               x = 0.09,                 # left padding (0 = far left, 1 = far right)
@@ -208,15 +250,20 @@ claimPlotsModuleServer <- function(id, data_module) {
 
       DT::datatable(
         data,
-        editable = list(target = 'cell', disable = list(columns = c(0, 2))),
+        editable = list(target = 'cell', disable = list(columns = c(0, 2, 3, 4, 5, 6))),
         options = list(
           dom = 't',
           columnDefs = list(
-            list(targets = c(1, 2), className = 'dt-center'),
-            list(targets = 1:2, render = JS(
+            list(targets = 0:6, className = 'dt-center'),
+            # Currency format for thresholds and values (columns 1,2,5,6 in 0-based indexing)
+            list(targets = c(1, 2, 5, 6), render = DT::JS(
               "function(data, type, row, meta) {",
-              "if(type === 'display') return '$' + parseFloat(data).toLocaleString();",
-              "return data; }"
+              "  if(type === 'display' && data != null && data !== '') {",
+              "    var num = parseFloat(data);",
+              "    if (!isNaN(num)) return 'SCR ' + num.toLocaleString('en-US', {maximumFractionDigits: 0});",
+              "  }",
+              "  return data;",
+              "}"
             ))
           )
         ),

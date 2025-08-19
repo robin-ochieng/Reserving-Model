@@ -105,7 +105,7 @@ dataModuleUI <- function(id) {
       )
     ),
     
-    # Simple Status Row
+  # Simple Status Row
     div(class = "simple-status-row",
       div(class = "status-item",
         Icon(iconName = "Money", style = list(fontSize = "20px", color = "#107c10")),
@@ -194,7 +194,7 @@ dataModuleUI <- function(id) {
       class = "app-footer",
       div(class = "footer-content",
         div(class = "footer-left",
-          tags$span("© 2024 SACOS Group Limited. All rights reserved.")
+          tags$span("© 2024 SACCOS Group Limited. All rights reserved.")
         ),
         div(class = "footer-right",
           tags$span("Powered by "),
@@ -287,7 +287,7 @@ dataModuleServer <- function(id) {
     }
     
     # Simple function to create data tables
-    make_data_table <- function(data, type) {
+  make_data_table <- function(data, type) {
       if(is.null(data)) {
         return(DT::datatable(
           data.frame(Message = paste("No", type, "data available. Please upload data files above.")), 
@@ -296,13 +296,14 @@ dataModuleServer <- function(id) {
       }
       
       # Currency column positions based on type
-      if(type == "paid") {
-        currency_cols <- c(9, 10, 11)  # Amount Paid, RI Amount, Net Amount
-      } else if(type == "outstanding") {
-        currency_cols <- c(9, 10, 11)  # Amount O/S, Gross OS Claims Adjusted, Reinsurance, Net Amount
-      } else { # reported
-        currency_cols <- c(9, 10, 11, 12)  # Gross Amount, Gross Claims Adjusted, RI Amount, Net Claims
-      }
+      # Choose currency columns by matching names (safer than index)
+      currency_names <- switch(type,
+        paid = c("Gross Amount", "RI Amount", "Net Amount"),
+        outstanding = c("Gross Amount", "RI Amount", "Net Amount", "Reinsurance"),
+        reported = c("Gross Amount", "RI Amount", "Net Claims"),
+        character(0)
+      )
+      currency_cols <- which(names(data) %in% currency_names)
       
       DT::datatable(
         data,
@@ -312,16 +313,16 @@ dataModuleServer <- function(id) {
           scrollY = "350px",
           columnDefs = list(
             # Format currency columns
-            list(targets = currency_cols, render = JS(
+            list(targets = currency_cols, render = DT::JS(
               "function(data, type, full, meta) {",
               "  if(type === 'display' && data != null) {",
-              "    return 'SCR' + parseFloat(data).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
+              "    return 'SCR ' + parseFloat(data).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
               "  }",
               "  return data;",
               "}"
             )),
             # Format date columns  
-            list(targets = c(6, 7, 8), render = JS(
+            list(targets = which(names(data) %in% c("Loss Date", "Notification Date", "Transaction Date")), render = DT::JS(
               "function(data, type, full, meta) {",
               "  if(type === 'display' && data != null) {",
               "    return new Date(data).toLocaleDateString('en-US');",
@@ -366,7 +367,7 @@ dataModuleServer <- function(id) {
       
       # Prepare outstanding data for combination
       outstanding_for_reported <- NULL
-      if(!is.null(outstanding) && nrow(outstanding) > 0) {
+  if(!is.null(outstanding) && nrow(outstanding) > 0) {
         # Check for Gross OS Claims Adjusted column
         
         outstanding_for_reported <- outstanding %>%
@@ -377,7 +378,7 @@ dataModuleServer <- function(id) {
                                  else if("Notification Date" %in% names(.)) `Notification Date`
                                  else `Loss Date`,
             `Gross Amount` = `Gross Amount`,
-            `RI Amount` = if("Reinsurance" %in% names(.)) `Reinsurance` else 0,
+    `RI Amount` = if("RI Amount" %in% names(.)) `RI Amount` else if("Reinsurance" %in% names(.)) `Reinsurance` else 0,
             `Net Claims` = `Net Amount`,
             Claim_Type = "Outstanding",
             # Ensure all required columns exist
@@ -422,21 +423,35 @@ dataModuleServer <- function(id) {
         colnames(paid) <- trimws(colnames(paid))
         colnames(paid) <- recode(colnames(paid),
           "Gross Amount" = "Gross Amount",
+          "Reinsurance"  = "RI Amount",
           "RI Amount"    = "RI Amount",
           "Net Amount"   = "Net Amount",
           "Loss Date"    = "Loss Date",
           "Reported Date"= "Reported Date",
+          "Notification Date" = "Notification Date",
           "Paid Date"    = "Paid Date",
           "Claim No"     = "Claim No",
-          "Business Class" = "Business Class"
+          "Business Class" = "Business Class",
+          "CLASS" = "Business Class",
+          "Class" = "Business Class",
+          "Class of Business" = "Business Class"
         )        
-        # Detect and rename date columns if needed
-        date_columns <- c("Loss Date", "Notification Date", "Transaction Date", "Paid Date", "Reported Date")
-        for(col in date_columns) {
-          if(col %in% names(paid)) {
-            paid[[col]] <- as.Date(paid[[col]], origin = "1899-12-30")
-          }
+        # Coerce Excel dates (numeric) and strings safely to Date
+        to_date <- function(x) {
+          suppressWarnings({
+            if (inherits(x, "Date")) return(x)
+            if (inherits(x, "POSIXt")) return(as.Date(x))
+            if (is.numeric(x)) return(as.Date(x, origin = "1899-12-30"))
+            if (is.character(x)) {
+              y <- as.Date(x)
+              if (all(is.na(y))) y <- as.Date(x, format = "%d/%m/%Y")
+              return(y)
+            }
+            as.Date(NA)
+          })
         }
+        date_columns <- intersect(c("Loss Date", "Notification Date", "Transaction Date", "Paid Date", "Reported Date"), names(paid))
+        for (col in date_columns) paid[[col]] <- to_date(paid[[col]])
         
         # Apply transformations based on available columns
         paid <- paid %>%
@@ -483,21 +498,35 @@ dataModuleServer <- function(id) {
         colnames(outstanding) <- trimws(colnames(outstanding))
         colnames(outstanding) <- recode(colnames(outstanding),
           "Gross Amount" = "Gross Amount",
+          "Reinsurance"  = "RI Amount",
           "RI Amount"    = "RI Amount",
           "Net Amount"   = "Net Amount",
           "Loss Date"    = "Loss Date",
           "Reported Date"= "Reported Date",
+          "Notification Date" = "Notification Date",
           "Paid Date"    = "Paid Date",
           "Claim No"     = "Claim No",
-          "Business Class" = "Business Class"
+          "Business Class" = "Business Class",
+          "CLASS" = "Business Class",
+          "Class" = "Business Class",
+          "Class of Business" = "Business Class"
         )
-        # Detect and rename date columns if needed
-        date_columns <- c("Loss Date", "Notification Date", "Reported Date")
-        for(col in date_columns) {
-          if(col %in% names(outstanding)) {
-            outstanding[[col]] <- as.Date(outstanding[[col]], origin = "1899-12-30")
-          }
+        # Date coercion
+        to_date <- function(x) {
+          suppressWarnings({
+            if (inherits(x, "Date")) return(x)
+            if (inherits(x, "POSIXt")) return(as.Date(x))
+            if (is.numeric(x)) return(as.Date(x, origin = "1899-12-30"))
+            if (is.character(x)) {
+              y <- as.Date(x)
+              if (all(is.na(y))) y <- as.Date(x, format = "%d/%m/%Y")
+              return(y)
+            }
+            as.Date(NA)
+          })
         }
+        date_columns <- intersect(c("Loss Date", "Notification Date", "Reported Date"), names(outstanding))
+        for (col in date_columns) outstanding[[col]] <- to_date(outstanding[[col]])
         
         # Apply transformations
         outstanding <- outstanding %>%
