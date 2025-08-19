@@ -20,6 +20,11 @@ accModuleUI <- function(id) {
   uiOutput(ns("summaryCards")),
         div(class = "simple-table-container",
           DT::dataTableOutput(ns("accTable"))
+        ),
+        Separator(),
+        Text("Incremental Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
+        div(class = "simple-table-container",
+          DT::dataTableOutput(ns("accTriangle"))
         )
       )
     ),
@@ -162,6 +167,102 @@ accModuleServer <- function(id, data_module) {
         class = 'cell-border stripe hover',
         rownames = FALSE,
         filter = 'top'
+      )
+    })
+
+    # Incremental Triangle (ACC): origin = Loss_Year_Loss_Quarter, dev = Reported_Delay, value = sum(Adjusted Gross Amount)
+    triangle_data <- reactive({
+      dat <- adjusted_data()
+      if (is.null(dat) || nrow(dat) == 0) return(NULL)
+
+      # Ensure numeric Adjusted Gross Amount
+      if ("Adjusted Gross Amount" %in% names(dat)) dat$`Adjusted Gross Amount` <- suppressWarnings(as.numeric(dat$`Adjusted Gross Amount`))
+
+      # Derive Loss Year / Quarter
+      loss_year <- if ("Loss_Year" %in% names(dat)) suppressWarnings(as.integer(dat$Loss_Year)) else NA_integer_
+      loss_quarter <- if ("Loss_Quarter" %in% names(dat)) suppressWarnings(as.integer(dat$Loss_Quarter)) else NA_integer_
+
+      # If not available, try from dates
+      if ((all(is.na(loss_year)) || all(is.na(loss_quarter))) && "Loss Date" %in% names(dat)) {
+        ld <- suppressWarnings(as.Date(dat$`Loss Date`))
+        if (all(is.na(loss_year))) loss_year <- suppressWarnings(lubridate::year(ld))
+        if (all(is.na(loss_quarter))) loss_quarter <- suppressWarnings(lubridate::quarter(ld))
+      }
+
+      # Fallbacks
+      loss_year[is.na(loss_year)] <- NA_integer_
+      loss_quarter[is.na(loss_quarter)] <- 1L
+
+      origin <- paste0(loss_year, "-Q", loss_quarter)
+
+      # Derive Reported Delay (in quarters)
+      if ("Reported_Delay" %in% names(dat)) {
+        dev <- suppressWarnings(as.integer(dat$Reported_Delay))
+      } else {
+        dev <- rep(NA_integer_, nrow(dat))
+        has_dates <- ("Reported Date" %in% names(dat)) && ("Loss Date" %in% names(dat))
+        if (has_dates) {
+          rd <- suppressWarnings(as.Date(dat$`Reported Date`))
+          ld <- suppressWarnings(as.Date(dat$`Loss Date`))
+          # months difference approx; divide by 3 for quarters
+          months_diff <- suppressWarnings((lubridate::year(rd) - lubridate::year(ld)) * 12 + (lubridate::month(rd) - lubridate::month(ld)))
+          dev <- suppressWarnings(pmax(0L, as.integer(floor(months_diff / 3))))
+        } else if (("Reported_Year" %in% names(dat)) && ("Loss_Year" %in% names(dat))) {
+          ry <- suppressWarnings(as.integer(dat$Reported_Year))
+          ly <- suppressWarnings(as.integer(dat$Loss_Year))
+          rq <- if ("Reported_Quarter" %in% names(dat)) suppressWarnings(as.integer(dat$Reported_Quarter)) else 1L
+          lq <- if ("Loss_Quarter" %in% names(dat)) suppressWarnings(as.integer(dat$Loss_Quarter)) else 1L
+          dev <- suppressWarnings(pmax(0L, (ry - ly) * 4L + (rq - lq)))
+        } else {
+          dev <- 0L
+        }
+      }
+
+      work <- data.frame(
+        origin = origin,
+        dev = dev,
+        value = dat$`Adjusted Gross Amount`,
+        stringsAsFactors = FALSE
+      )
+      # Clean invalid rows
+      work <- work[!is.na(work$origin) & !is.na(work$dev) & !is.na(work$value), , drop = FALSE]
+      if (nrow(work) == 0) return(NULL)
+
+      # Aggregate and complete grid
+      agg <- work %>%
+        dplyr::group_by(origin, dev) %>%
+        dplyr::summarise(Gross_Amount = sum(value, na.rm = TRUE), .groups = "drop")
+
+      if (nrow(agg) == 0) return(NULL)
+
+      dev_levels <- seq.int(0L, max(agg$dev, na.rm = TRUE))
+      full <- tidyr::complete(agg, origin, dev = dev_levels, fill = list(Gross_Amount = 0))
+
+      tri <- tidyr::pivot_wider(full, names_from = dev, values_from = Gross_Amount, values_fill = 0, names_prefix = "Dev_")
+
+      # Order origins chronologically if possible
+      o_yr <- suppressWarnings(as.integer(sub("-Q.*$", "", tri$origin)))
+      o_q  <- suppressWarnings(as.integer(sub("^.*-Q", "", tri$origin)))
+      ord <- order(o_yr, o_q, na.last = TRUE)
+      tri <- tri[ord, , drop = FALSE]
+      tri
+    })
+
+    output$accTriangle <- DT::renderDataTable({
+      tri <- triangle_data()
+      if (is.null(tri) || nrow(tri) == 0) {
+        return(DT::datatable(data.frame(Message = "Triangle not available for ACC."), options = list(dom = 't'), rownames = FALSE))
+      }
+      DT::datatable(
+        tri,
+        options = list(
+          pageLength = 20,
+          scrollX = TRUE,
+          scrollY = "360px",
+          searching = FALSE
+        ),
+        class = 'cell-border stripe hover',
+        rownames = FALSE
       )
     })
 
