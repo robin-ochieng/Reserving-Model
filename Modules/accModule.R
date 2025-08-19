@@ -17,7 +17,7 @@ accModuleUI <- function(id) {
           downloadButton(ns("download_csv"), "Download CSV"),
           downloadButton(ns("download_xlsx"), "Download Excel")
         ),
-        uiOutput(ns("summaryCards")),
+  uiOutput(ns("summaryCards")),
         div(class = "simple-table-container",
           DT::dataTableOutput(ns("accTable"))
         )
@@ -175,38 +175,31 @@ accModuleServer <- function(id, data_module) {
     output$summaryCards <- renderUI({
       dat <- current_view()
       if (is.null(dat) || nrow(dat) == 0) return(NULL)
-      sum_gross <- if ("Gross Amount" %in% names(dat)) sum(dat$`Gross Amount`, na.rm = TRUE) else 0
-      sum_adj   <- if ("Adjusted Gross Amount" %in% names(dat)) sum(dat$`Adjusted Gross Amount`, na.rm = TRUE) else sum_gross
-      sum_ri    <- if ("RI Amount" %in% names(dat)) sum(dat$`RI Amount`, na.rm = TRUE) else 0
-      sum_net   <- if ("Net Amount" %in% names(dat)) sum(dat$`Net Amount`, na.rm = TRUE) else 0
-      fmt <- function(x) paste0("SCR ", format(round(x, 2), big.mark = ",", nsmall = 2))
+      # Counts and sums for Accident (ACC) filtered view
+      cnt_acc  <- nrow(dat)
+      sum_gross <- if ("Gross Amount" %in% names(dat)) sum(suppressWarnings(as.numeric(dat$`Gross Amount`)), na.rm = TRUE) else 0
+      sum_adj   <- if ("Adjusted Gross Amount" %in% names(dat)) sum(suppressWarnings(as.numeric(dat$`Adjusted Gross Amount`)), na.rm = TRUE) else sum_gross
+      fmt_curr <- function(x) paste0("SCR ", format(round(x, 2), big.mark = ",", nsmall = 2))
       div(class = "simple-cards-row",
+        div(class = "summary-card",
+          Icon(iconName = "NumberSymbol", style = list(fontSize = "24px", color = "#605e5c")),
+          div(
+            div(class = "card-number", format(cnt_acc, big.mark = ",")),
+            div(class = "card-label", "Accident Count")
+          )
+        ),
         div(class = "summary-card",
           Icon(iconName = "Money", style = list(fontSize = "24px", color = "#107c10")),
           div(
-            div(class = "card-number", fmt(sum_gross)),
-            div(class = "card-label", "Gross Amount")
+            div(class = "card-number", fmt_curr(sum_gross)),
+            div(class = "card-label", "Gross Amount (Sum)")
           )
         ),
         div(class = "summary-card",
           Icon(iconName = "CalculatorEqualTo", style = list(fontSize = "24px", color = "#0078d4")),
           div(
-            div(class = "card-number", fmt(sum_adj)),
-            div(class = "card-label", "Adjusted Gross Amount")
-          )
-        ),
-        div(class = "summary-card",
-          Icon(iconName = "Shield", style = list(fontSize = "24px", color = "#d13438")),
-          div(
-            div(class = "card-number", fmt(sum_ri)),
-            div(class = "card-label", "Reinsurance Amount")
-          )
-        ),
-        div(class = "summary-card",
-          Icon(iconName = "CalculatorAddition", style = list(fontSize = "24px", color = "#8764b8")),
-          div(
-            div(class = "card-number", fmt(sum_net)),
-            div(class = "card-label", "Net Amount")
+            div(class = "card-number", fmt_curr(sum_adj)),
+            div(class = "card-label", "Adjusted Gross Amount (Sum)")
           )
         )
       )
