@@ -252,7 +252,10 @@ accModuleServer <- function(id, data_module) {
       dev_levels <- seq.int(0L, max(agg$dev, na.rm = TRUE))
       full <- tidyr::complete(agg, origin, dev = dev_levels, fill = list(Gross_Amount = 0))
 
-      tri <- tidyr::pivot_wider(full, names_from = dev, values_from = Gross_Amount, values_fill = 0, names_prefix = "Dev_")
+  tri <- tidyr::pivot_wider(full, names_from = dev, values_from = Gross_Amount, values_fill = 0, names_prefix = "Dev_")
+  # Round numeric values to 0 decimals
+  num_cols_tri <- which(sapply(tri, is.numeric))
+  if (length(num_cols_tri)) tri[num_cols_tri] <- lapply(tri[num_cols_tri], function(x) round(x, 0))
 
       # Order origins chronologically if possible
       o_yr <- suppressWarnings(as.integer(sub("-Q.*$", "", tri$origin)))
@@ -270,7 +273,7 @@ accModuleServer <- function(id, data_module) {
       # Pretty print with fixed-width columns
       # Format numbers with comma separators and no scientific notation
       fmt_num <- function(x) {
-        ifelse(is.na(x), "", format(x, big.mark = ",", scientific = FALSE, trim = TRUE))
+        ifelse(is.na(x), "", format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE, nsmall = 0))
       }
       tri_fmt <- tri
       num_cols <- which(sapply(tri_fmt, is.numeric))
