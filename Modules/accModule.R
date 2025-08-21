@@ -41,13 +41,10 @@ accModuleUI <- function(id) {
           div(class = "triangle-box",
             verbatimTextOutput(ns("accTriangleText"))
           )
-        ),
+        )
+        ,
         Separator(),
         Text("Cumulative Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
-        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
-          downloadButton(ns("download_cum_triangle_csv"), "Download Cumulative Triangle CSV"),
-          downloadButton(ns("download_cum_triangle_xlsx"), "Download Cumulative Triangle Excel")
-        ),
         div(class = "simple-table-container",
           div(class = "triangle-box",
             verbatimTextOutput(ns("accCumTriangleText"))
@@ -216,21 +213,21 @@ accModuleServer <- function(id, data_module) {
         if (all(is.na(loss_quarter))) loss_quarter <- suppressWarnings(lubridate::quarter(ld))
       }
 
-  # Fallbacks
-  loss_year[is.na(loss_year)] <- NA_integer_
-  loss_quarter[is.na(loss_quarter)] <- 1L
+      # Fallbacks
+      loss_year[is.na(loss_year)] <- NA_integer_
+      loss_quarter[is.na(loss_quarter)] <- 1L
 
-  # Cap origins to start from 2013-Q1
-  min_idx <- 2013L * 4L + 1L
-  idx <- loss_year * 4L + as.integer(loss_quarter)
-  keep_origin <- !is.na(idx) & idx >= min_idx
-  if (!any(keep_origin)) return(NULL)
-  # Filter dataset and aligned vectors before proceeding
-  dat <- dat[keep_origin, , drop = FALSE]
-  loss_year <- loss_year[keep_origin]
-  loss_quarter <- loss_quarter[keep_origin]
+      # Cap origins to start from 2013-Q1
+      min_idx <- 2013L * 4L + 1L
+      idx <- loss_year * 4L + as.integer(loss_quarter)
+      keep_origin <- !is.na(idx) & idx >= min_idx
+      if (!any(keep_origin)) return(NULL)
+      # Filter dataset and aligned vectors before proceeding
+      dat <- dat[keep_origin, , drop = FALSE]
+      loss_year <- loss_year[keep_origin]
+      loss_quarter <- loss_quarter[keep_origin]
 
-  origin <- paste0(loss_year, "-Q", loss_quarter)
+      origin <- paste0(loss_year, "-Q", loss_quarter)
 
       # Derive Reported Delay (in quarters)
       if ("Reported_Delay" %in% names(dat)) {
@@ -241,8 +238,8 @@ accModuleServer <- function(id, data_module) {
         if (has_dates) {
           rd <- suppressWarnings(as.Date(dat$`Reported Date`))
           ld <- suppressWarnings(as.Date(dat$`Loss Date`))
-          # months difference approx; divide by 3 for quarters
-          months_diff <- suppressWarnings((lubridate::year(rd) - lubridate::year(ld)) * 12 + (lubridate::month(rd) - lubridate::month(ld)))
+          # months difference via interval; round down months, then divide by 3 for quarters
+          months_diff <- suppressWarnings(floor(lubridate::time_length(lubridate::interval(ld, rd), "months")))
           dev <- suppressWarnings(pmax(0L, as.integer(floor(months_diff / 3))))
         } else if (("Reported_Year" %in% names(dat)) && ("Loss_Year" %in% names(dat))) {
           ry <- suppressWarnings(as.integer(dat$Reported_Year))
@@ -272,45 +269,56 @@ accModuleServer <- function(id, data_module) {
 
       if (nrow(agg) == 0) return(NULL)
 
-  # Ensure a square triangle: number of dev periods equals number of origins (rows)
-  n_origins <- length(unique(agg$origin))
-  if (is.na(n_origins) || n_origins < 1) return(NULL)
-  dev_levels <- seq.int(0L, n_origins - 1L)
-  full <- tidyr::complete(agg, origin, dev = dev_levels, fill = list(Gross_Amount = 0))
+      # Build a square dev axis with NA beyond allowed development
+      # 1) Order & index origins
+      orig_levels <- sort(unique(agg$origin))
+      N <- length(orig_levels)
+      o_yr_idx <- suppressWarnings(as.integer(sub("-Q.*$", "", orig_levels)))
+      o_q_idx  <- suppressWarnings(as.integer(sub("^.*-Q",  "", orig_levels)))
+      origin_index_vec <- o_yr_idx * 4L + o_q_idx
+      names(origin_index_vec) <- orig_levels
 
-  tri <- tidyr::pivot_wider(full, names_from = dev, values_from = Gross_Amount, values_fill = 0)
-  # Round numeric values to 0 decimals
-  num_cols_tri <- which(sapply(tri, is.numeric))
-  if (length(num_cols_tri)) tri[num_cols_tri] <- lapply(tri[num_cols_tri], function(x) round(x, 0))
+      # 2) Latest observed calendar index
+      agg$o_idx <- origin_index_vec[agg$origin]
+      agg$cal_i <- agg$o_idx + agg$dev
+      latest_cal <- max(agg$cal_i, na.rm = TRUE)
 
-      # Order origins chronologically if possible
+      # 3) Full square grid dev = 0..N-1 for all origins
+      full_dev <- 0L:(N - 1L)
+      full_sq <- tidyr::complete(
+        agg,
+        origin = orig_levels,
+        dev    = full_dev
+      )
+
+      # 4) Within allowed dev: keep values; if missing -> 0. Beyond allowed -> NA
+      full_sq$o_idx <- origin_index_vec[full_sq$origin]
+      full_sq$allowed_dev <- pmax(0L, latest_cal - full_sq$o_idx)
+      full_sq$Gross_Amount <- dplyr::case_when(
+        !is.na(full_sq$Gross_Amount)               ~ full_sq$Gross_Amount,
+        full_sq$dev <= full_sq$allowed_dev         ~ 0,
+        TRUE                                       ~ NA_real_
+      )
+
+      # 5) Pivot to wide without forcing fill so NAs are preserved
+      tri <- tidyr::pivot_wider(
+        full_sq[, c("origin", "dev", "Gross_Amount")],
+        names_from  = dev,
+        values_from = Gross_Amount
+      )
+
+      # 6) Order origins and round numerics, preserving NAs
       o_yr <- suppressWarnings(as.integer(sub("-Q.*$", "", tri$origin)))
-      o_q  <- suppressWarnings(as.integer(sub("^.*-Q", "", tri$origin)))
+      o_q  <- suppressWarnings(as.integer(sub("^.*-Q",  "", tri$origin)))
       ord <- order(o_yr, o_q, na.last = TRUE)
       tri <- tri[ord, , drop = FALSE]
+      num_cols_tri <- which(sapply(tri, is.numeric))
+      if (length(num_cols_tri)) {
+        tri[num_cols_tri] <- lapply(tri[num_cols_tri], function(x) ifelse(is.na(x), NA, round(x, 0)))
+      }
+
       tri
     })
-
-    # Helper: pretty-print a triangle (data.frame) similar to incremental printing
-    .pretty_print_triangle <- function(df) {
-      if (is.null(df) || nrow(df) == 0) return(NULL)
-      fmt_num <- function(x) {
-        ifelse(is.na(x), "", format(round(as.numeric(x), 0), big.mark = ",", scientific = FALSE, trim = TRUE, nsmall = 0))
-      }
-      tri_fmt <- df
-      num_cols <- which(sapply(tri_fmt, is.numeric))
-      tri_fmt[num_cols] <- lapply(tri_fmt[num_cols], fmt_num)
-      cols <- names(tri_fmt)
-      widths <- vapply(seq_along(cols), function(i) {
-        max(nchar(cols[i]), max(nchar(as.character(tri_fmt[[i]])), na.rm = TRUE))
-      }, integer(1))
-      pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
-      header <- paste(mapply(pad, cols, widths), collapse = " ")
-      sep <- paste(mapply(function(w) paste(rep("-", w), collapse = ""), widths), collapse = " ")
-      rows <- apply(tri_fmt, 1, function(r) paste(mapply(pad, r, widths), collapse = " "))
-      interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
-      paste(c(header, sep, interleaved), collapse = "\n")
-    }
 
     output$accTriangleText <- renderText({
       tri <- triangle_data()
@@ -318,10 +326,8 @@ accModuleServer <- function(id, data_module) {
         return("Triangle not available for ACC.")
       }
       # Pretty print with fixed-width columns
-  # Format numbers with comma separators and no scientific notation
-      fmt_num <- function(x) {
-        ifelse(is.na(x), "", format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE, nsmall = 0))
-      }
+      # Format numbers with comma separators and no scientific notation
+  fmt_num <- function(x) ifelse(is.na(x), "", format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE))
       tri_fmt <- tri
       num_cols <- which(sapply(tri_fmt, is.numeric))
       tri_fmt[num_cols] <- lapply(tri_fmt[num_cols], fmt_num)
@@ -334,37 +340,87 @@ accModuleServer <- function(id, data_module) {
       }, integer(1))
 
       pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
-  header <- paste(mapply(pad, cols, widths), collapse = " ")
-  sep <- paste(mapply(function(w) paste(rep("-", w), collapse = ""), widths), collapse = " ")
-  rows <- apply(tri_fmt, 1, function(r) paste(mapply(pad, r, widths), collapse = " "))
-  # Insert horizontal borders between all data rows
-  interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
-  paste(c(header, sep, interleaved), collapse = "\n")
+      join <- function(parts) paste(parts, collapse = " | ")
+      header <- join(mapply(pad, cols, widths))
+      sep <- join(mapply(function(w) paste(rep("-", w), collapse = ""), widths))
+      rows <- apply(tri_fmt, 1, function(r) join(mapply(pad, r, widths)))
+      # Insert horizontal borders between all data rows
+      interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
+      paste(c(header, sep, interleaved), collapse = "\n")
+        })
+
+    # Cumulative triangle with future devs masked to NA (proper run-off)
+    cum_triangle_data <- reactive({
+      tri_inc <- triangle_data()
+      if (is.null(tri_inc) || nrow(tri_inc) == 0) return(NULL)
+
+      tri <- as.data.frame(tri_inc, stringsAsFactors = FALSE)
+
+      # Identify dev columns and dev integers
+      dev_names <- setdiff(names(tri), "origin")
+      if (!length(dev_names)) return(NULL)
+      dev_int <- suppressWarnings(as.integer(dev_names))
+
+      # Origin index (year*4 + quarter)
+      o_yr <- suppressWarnings(as.integer(sub("-Q.*$", "", tri$origin)))
+      o_q  <- suppressWarnings(as.integer(sub("^.*-Q",  "", tri$origin)))
+      origin_index <- o_yr * 4L + o_q
+
+      # Build long view to compute latest observed calendar index using only non-NA observations
+      vals_mat <- as.matrix(tri[, dev_names])
+      long <- data.frame(
+        origin = rep(tri$origin, each = length(dev_names)),
+        dev    = rep(dev_names, times = nrow(tri)),
+        val    = as.vector(t(vals_mat)),
+        stringsAsFactors = FALSE
+      )
+      long$dev_i <- suppressWarnings(as.integer(as.character(long$dev)))
+      long$o_idx <- rep(origin_index, each = length(dev_names))
+      long$cal_i <- long$o_idx + long$dev_i
+      latest_cal <- max(long$cal_i[!is.na(long$val)], na.rm = TRUE)
+
+      # Allowed dev for each origin
+      allowed_dev <- pmax(0L, latest_cal - origin_index)
+
+      # Cumulative by row (treat NA as 0), then re-mask future cells to NA
+      storage.mode(vals_mat) <- "double"
+      mat_cum <- t(apply(replace(vals_mat, is.na(vals_mat), 0), 1, cumsum))
+      for (i in seq_len(nrow(mat_cum))) {
+        future_mask <- dev_int > allowed_dev[i]
+        mat_cum[i, future_mask] <- NA_real_
+      }
+
+      tri_cum <- tri
+      tri_cum[, dev_names] <- lapply(seq_along(dev_names), function(j) ifelse(is.na(mat_cum[, j]), NA, round(mat_cum[, j], 0)))
+      class(tri_cum) <- "data.frame"
+      tri_cum
     })
 
-    # Build cumulative triangle from incremental triangle
-    cumulative_triangle_data <- reactive({
-      tri <- triangle_data()
-      if (is.null(tri) || nrow(tri) == 0) return(NULL)
-      if (!"origin" %in% names(tri)) return(NULL)
-      # Identify numeric dev columns only (headers are numeric strings after pivot)
-      dev_cols <- setdiff(names(tri), "origin")
-      # Ensure column order by numeric dev
-      dev_order <- order(as.integer(dev_cols))
-      dev_cols <- dev_cols[dev_order]
-      cum <- tri
-      # Row-wise cumulative sum across dev columns
-      cum[dev_cols] <- t(apply(cum[dev_cols], 1, function(r) cumsum(as.numeric(r))))
-      # Round again to 0 decimals (safety)
-      num_cols <- which(sapply(cum, is.numeric))
-      if (length(num_cols)) cum[num_cols] <- lapply(cum[num_cols], function(x) round(x, 0))
-      cum
-    })
+
+
 
     output$accCumTriangleText <- renderText({
-      cum <- cumulative_triangle_data()
-      if (is.null(cum) || nrow(cum) == 0) return("Cumulative triangle not available for ACC.")
-      .pretty_print_triangle(cum)
+      tri <- cum_triangle_data()
+      if (is.null(tri) || nrow(tri) == 0) {
+        return("Cumulative triangle not available for ACC.")
+      }
+  fmt_num <- function(x) ifelse(is.na(x), "", format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE))
+      tri_fmt <- tri
+      num_cols <- which(sapply(tri_fmt, is.numeric))
+      tri_fmt[num_cols] <- lapply(tri_fmt[num_cols], fmt_num)
+
+      cols <- names(tri_fmt)
+      widths <- vapply(seq_along(cols), function(i) {
+        max(nchar(cols[i]), max(nchar(as.character(tri_fmt[[i]])), na.rm = TRUE))
+      }, integer(1))
+
+  pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
+  join <- function(parts) paste(parts, collapse = " | ")
+  header <- join(mapply(pad, cols, widths))
+  sep <- join(mapply(function(w) paste(rep("-", w), collapse = ""), widths))
+  rows <- apply(tri_fmt, 1, function(r) join(mapply(pad, r, widths)))
+      interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
+      paste(c(header, sep, interleaved), collapse = "\n")
     })
 
     current_view <- reactive({
@@ -452,32 +508,6 @@ accModuleServer <- function(id, data_module) {
           writexl::write_xlsx(tri, path = file)
         } else if (requireNamespace("openxlsx", quietly = TRUE)) {
           openxlsx::write.xlsx(tri, file)
-        } else {
-          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
-        }
-      }
-    )
-
-    # Cumulative Triangle downloads (CSV / Excel)
-    output$download_cum_triangle_csv <- downloadHandler(
-      filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".csv"),
-      content = function(file) {
-        cum <- cumulative_triangle_data()
-        if (is.null(cum) || nrow(cum) == 0) stop("Cumulative triangle not available for ACC.")
-        utils::write.csv(cum, file, row.names = FALSE, na = "")
-      },
-      contentType = "text/csv"
-    )
-
-    output$download_cum_triangle_xlsx <- downloadHandler(
-      filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".xlsx"),
-      content = function(file) {
-        cum <- cumulative_triangle_data()
-        if (is.null(cum) || nrow(cum) == 0) stop("Cumulative triangle not available for ACC.")
-        if (requireNamespace("writexl", quietly = TRUE)) {
-          writexl::write_xlsx(cum, path = file)
-        } else if (requireNamespace("openxlsx", quietly = TRUE)) {
-          openxlsx::write.xlsx(cum, file)
         } else {
           stop("Please install 'writexl' or 'openxlsx' to export Excel.")
         }

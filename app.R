@@ -14,6 +14,7 @@ library(dplyr)
 library(tidyverse) 
 library(lubridate)
 library(plotly)
+library(ChainLadder)
 
 # Load custom modules
 source("Modules/landingPageModule.R")
