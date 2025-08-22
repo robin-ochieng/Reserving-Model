@@ -28,9 +28,7 @@ accModuleUI <- function(id) {
           downloadButton(ns("download_xlsx"), "Download Excel")
         ),
   uiOutput(ns("summaryCards")),
-        div(class = "simple-table-container",
-          DT::dataTableOutput(ns("accTable"))
-        ),
+  # Dataset table hidden as requested
         Separator(),
         Text("Incremental Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
         div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
