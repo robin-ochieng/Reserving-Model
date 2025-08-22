@@ -495,19 +495,28 @@ accModuleServer <- function(id, data_module) {
           }
         }
       }
+
+  # % Development = 1 / cdf with NA/non-finite guard
+  pct_dev <- ifelse(is.finite(cdf) & cdf > 0, 1 / cdf, NA_real_)
   cdf_fmt <- sapply(cdf, fmt_factor)
+
+  # Compute % Development from CDF (pct_dev = 1 / cdf) with NA/non-finite guard
+  pct_dev <- ifelse(is.finite(cdf) & cdf > 0, 1 / cdf, NA_real_)
+  fmt_pct <- function(x) ifelse(is.na(x), "", paste0(formatC(100 * x, format = "f", digits = 1), "%"))
+  pct_fmt <- sapply(pct_dev, fmt_pct)
 
       # Build a 2-row summary table (Column Sum; Last Column Value) with aligned headers and widths
     header_cols <- c("origin", dev_cols)
     header_labels <- c("Development Periods", dev_cols)
     widths <- vapply(seq_along(header_cols), function(i) {
-        if (i == 1) {
+    if (i == 1) {
           max(
             nchar("Development Periods"),
             nchar("Column Sum"),
             nchar("Last Column Value"),
             nchar("Development Factors"),
-            nchar("Cumulative Development Factors")
+      nchar("Cumulative Development Factors"),
+      nchar("% Development")
           )
         } else {
           j <- i - 1
@@ -516,7 +525,8 @@ accModuleServer <- function(id, data_module) {
             nchar(sums_fmt[j]),
             nchar(last_fmt[j]),
             nchar(factors_fmt[j]),
-            nchar(cdf_fmt[j])
+      nchar(cdf_fmt[j]),
+      nchar(pct_fmt[j])
           )
         }
       }, integer(1))
@@ -529,7 +539,8 @@ accModuleServer <- function(id, data_module) {
   row_last <- join(mapply(pad, c("Last Column Value", as.character(last_fmt)), widths))
   row_factor <- join(mapply(pad, c("Development Factors", as.character(factors_fmt)), widths))
   row_cdf <- join(mapply(pad, c("Cumulative Development Factors", as.character(cdf_fmt)), widths))
-  paste(c(header, sep, row_sum, sep, row_last, sep, row_factor, sep, row_cdf, sep), collapse = "\n")
+  row_pct <- join(mapply(pad, c("% Development", as.character(pct_fmt)), widths))
+  paste(c(header, sep, row_sum, sep, row_last, sep, row_factor, sep, row_cdf, sep, row_pct, sep), collapse = "\n")
     })
 
     current_view <- reactive({
@@ -701,7 +712,8 @@ accModuleServer <- function(id, data_module) {
         setNames(as.list(c("Column Sum", as.numeric(col_sums))), c("Metric", dev_cols)),
         setNames(as.list(c("Last Column Value", as.numeric(last_vals))), c("Metric", dev_cols)),
         setNames(as.list(c("Development Factors", as.numeric(dev_factors))), c("Metric", dev_cols)),
-        setNames(as.list(c("Cumulative Development Factors", as.numeric(cdf))), c("Metric", dev_cols))
+        setNames(as.list(c("Cumulative Development Factors", as.numeric(cdf))), c("Metric", dev_cols)),
+        setNames(as.list(c("% Development", as.numeric(pct_dev))), c("Metric", dev_cols))
       )
       # Convert to data.frame with stringsAsFactors=FALSE
       as.data.frame(summary_mat, stringsAsFactors = FALSE, check.names = FALSE)
