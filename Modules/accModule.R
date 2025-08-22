@@ -523,13 +523,13 @@ accModuleServer <- function(id, data_module) {
 
       pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
       join <- function(parts) paste(parts, collapse = " | ")
-      header <- join(mapply(pad, header_labels, widths))
-      sep <- join(mapply(function(w) paste(rep("-", w), collapse = ""), widths))
+  header <- join(mapply(pad, header_labels, widths))
+  sep <- join(mapply(function(w) paste(rep("-", w), collapse = ""), widths))
   row_sum <- join(mapply(pad, c("Column Sum", as.character(sums_fmt)), widths))
   row_last <- join(mapply(pad, c("Last Column Value", as.character(last_fmt)), widths))
   row_factor <- join(mapply(pad, c("Development Factors", as.character(factors_fmt)), widths))
   row_cdf <- join(mapply(pad, c("Cumulative Development Factors", as.character(cdf_fmt)), widths))
-  paste(c(header, sep, row_sum, row_last, row_factor, row_cdf), collapse = "\n")
+  paste(c(header, sep, row_sum, sep, row_last, sep, row_factor, sep, row_cdf, sep), collapse = "\n")
     })
 
     current_view <- reactive({
