@@ -49,6 +49,13 @@ accModuleUI <- function(id) {
           div(class = "triangle-box",
             verbatimTextOutput(ns("accCumTriangleText"))
           )
+        ),
+        Separator(),
+        Text("Cumulative Triangle Column Sums (ACC)", variant = "large", style = list(fontWeight = "600")),
+        div(class = "simple-table-container",
+          div(class = "triangle-box",
+            verbatimTextOutput(ns("accCumTriangleSumsText"))
+          )
         )
       )
     ),
@@ -405,9 +412,9 @@ accModuleServer <- function(id, data_module) {
         return("Cumulative triangle not available for ACC.")
       }
   fmt_num <- function(x) ifelse(is.na(x), "", format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE))
-      tri_fmt <- tri
-      num_cols <- which(sapply(tri_fmt, is.numeric))
-      tri_fmt[num_cols] <- lapply(tri_fmt[num_cols], fmt_num)
+  tri_fmt <- tri
+  num_cols <- which(sapply(tri_fmt, is.numeric))
+  tri_fmt[num_cols] <- lapply(tri_fmt[num_cols], fmt_num)
 
       cols <- names(tri_fmt)
       widths <- vapply(seq_along(cols), function(i) {
@@ -421,6 +428,47 @@ accModuleServer <- function(id, data_module) {
   rows <- apply(tri_fmt, 1, function(r) join(mapply(pad, r, widths)))
       interleaved <- as.vector(rbind(rows, rep(sep, length(rows))))
       paste(c(header, sep, interleaved), collapse = "\n")
+    })
+
+    # Standalone Column Sums under cumulative triangle
+    output$accCumTriangleSumsText <- renderText({
+      tri <- cum_triangle_data()
+      if (is.null(tri) || nrow(tri) == 0) {
+        return("Cumulative triangle sums not available for ACC.")
+      }
+      fmt_num <- function(x) ifelse(is.na(x), "", format(round(x, 0), big.mark = ",", scientific = FALSE, trim = TRUE))
+      dev_cols <- setdiff(names(tri), "origin")
+      if (!length(dev_cols)) return("")
+      col_sums <- vapply(dev_cols, function(nm) sum(suppressWarnings(as.numeric(tri[[nm]])), na.rm = TRUE), numeric(1))
+      sums_fmt <- sapply(col_sums, fmt_num)
+
+      # Compute last non-NA observed value per development column
+      last_vals <- vapply(dev_cols, function(nm) {
+        col <- suppressWarnings(as.numeric(tri[[nm]]))
+        idx <- which(!is.na(col))
+        if (length(idx)) col[max(idx)] else NA_real_
+      }, numeric(1))
+      last_fmt <- sapply(last_vals, fmt_num)
+
+      # Build a 2-row summary table (Column Sum; Last Column Value) with aligned headers and widths
+    header_cols <- c("origin", dev_cols)
+    header_labels <- c("Development Periods", dev_cols)
+      widths <- vapply(seq_along(header_cols), function(i) {
+        if (i == 1) {
+      max(nchar("Development Periods"), nchar("Column Sum"), nchar("Last Column Value"))
+        } else {
+          j <- i - 1
+          max(nchar(dev_cols[j]), nchar(sums_fmt[j]), nchar(last_fmt[j]))
+        }
+      }, integer(1))
+
+      pad <- function(x, w) sprintf(paste0("%-", w, "s"), x)
+      join <- function(parts) paste(parts, collapse = " | ")
+      header <- join(mapply(pad, header_labels, widths))
+      sep <- join(mapply(function(w) paste(rep("-", w), collapse = ""), widths))
+      row_sum <- join(mapply(pad, c("Column Sum", as.character(sums_fmt)), widths))
+      row_last <- join(mapply(pad, c("Last Column Value", as.character(last_fmt)), widths))
+      paste(c(header, sep, row_sum, row_last), collapse = "\n")
     })
 
     current_view <- reactive({
