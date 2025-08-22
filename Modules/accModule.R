@@ -45,6 +45,10 @@ accModuleUI <- function(id) {
         ,
         Separator(),
         Text("Cumulative Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
+        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
+          downloadButton(ns("download_cum_triangle_csv"), "Download Cumulative CSV"),
+          downloadButton(ns("download_cum_triangle_xlsx"), "Download Cumulative Excel")
+        ),
         div(class = "simple-table-container",
           div(class = "triangle-box",
             verbatimTextOutput(ns("accCumTriangleText"))
@@ -52,6 +56,10 @@ accModuleUI <- function(id) {
         ),
         Separator(),
         Text("Cumulative Triangle Column Sums (ACC)", variant = "large", style = list(fontWeight = "600")),
+        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
+          downloadButton(ns("download_cum_summary_csv"), "Download Summary CSV"),
+          downloadButton(ns("download_cum_summary_xlsx"), "Download Summary Excel")
+        ),
         div(class = "simple-table-container",
           div(class = "triangle-box",
             verbatimTextOutput(ns("accCumTriangleSumsText"))
@@ -450,15 +458,66 @@ accModuleServer <- function(id, data_module) {
       }, numeric(1))
       last_fmt <- sapply(last_vals, fmt_num)
 
+      # Compute Development Factors per formula
+      # dev_factor[j] = col_sums[j+1] / (col_sums[j] - last_vals[j]); last column = 1
+      n_dev <- length(dev_cols)
+      dev_factors <- rep(NA_real_, n_dev)
+      if (n_dev >= 1) {
+        for (j in seq_len(n_dev)) {
+          if (j == n_dev) {
+            dev_factors[j] <- 1
+          } else {
+            num <- col_sums[j + 1]
+            den <- col_sums[j] - last_vals[j]
+            if (is.na(num) || is.na(den) || den <= 0) {
+              dev_factors[j] <- NA_real_
+            } else {
+              dev_factors[j] <- num / den
+            }
+          }
+        }
+      }
+  fmt_factor <- function(x) ifelse(is.na(x), "", formatC(x, format = "f", digits = 4))
+      factors_fmt <- sapply(dev_factors, fmt_factor)
+
+      # Compute Cumulative Development Factors (reverse cumulative product with NA/non-finite guard)
+      cdf <- rep(NA_real_, n_dev)
+      if (n_dev >= 1) {
+        cdf[n_dev] <- 1
+        if (n_dev >= 2) {
+          for (j in (n_dev - 1):1) {
+            slice <- dev_factors[j:n_dev]
+            if (any(is.na(slice)) || any(!is.finite(slice))) {
+              cdf[j] <- NA_real_
+            } else {
+              cdf[j] <- prod(slice)
+            }
+          }
+        }
+      }
+  cdf_fmt <- sapply(cdf, fmt_factor)
+
       # Build a 2-row summary table (Column Sum; Last Column Value) with aligned headers and widths
     header_cols <- c("origin", dev_cols)
     header_labels <- c("Development Periods", dev_cols)
-      widths <- vapply(seq_along(header_cols), function(i) {
+    widths <- vapply(seq_along(header_cols), function(i) {
         if (i == 1) {
-      max(nchar("Development Periods"), nchar("Column Sum"), nchar("Last Column Value"))
+          max(
+            nchar("Development Periods"),
+            nchar("Column Sum"),
+            nchar("Last Column Value"),
+            nchar("Development Factors"),
+            nchar("Cumulative Development Factors")
+          )
         } else {
           j <- i - 1
-          max(nchar(dev_cols[j]), nchar(sums_fmt[j]), nchar(last_fmt[j]))
+          max(
+            nchar(dev_cols[j]),
+            nchar(sums_fmt[j]),
+            nchar(last_fmt[j]),
+            nchar(factors_fmt[j]),
+            nchar(cdf_fmt[j])
+          )
         }
       }, integer(1))
 
@@ -466,9 +525,11 @@ accModuleServer <- function(id, data_module) {
       join <- function(parts) paste(parts, collapse = " | ")
       header <- join(mapply(pad, header_labels, widths))
       sep <- join(mapply(function(w) paste(rep("-", w), collapse = ""), widths))
-      row_sum <- join(mapply(pad, c("Column Sum", as.character(sums_fmt)), widths))
-      row_last <- join(mapply(pad, c("Last Column Value", as.character(last_fmt)), widths))
-      paste(c(header, sep, row_sum, row_last), collapse = "\n")
+  row_sum <- join(mapply(pad, c("Column Sum", as.character(sums_fmt)), widths))
+  row_last <- join(mapply(pad, c("Last Column Value", as.character(last_fmt)), widths))
+  row_factor <- join(mapply(pad, c("Development Factors", as.character(factors_fmt)), widths))
+  row_cdf <- join(mapply(pad, c("Cumulative Development Factors", as.character(cdf_fmt)), widths))
+  paste(c(header, sep, row_sum, row_last, row_factor, row_cdf), collapse = "\n")
     })
 
     current_view <- reactive({
@@ -556,6 +617,116 @@ accModuleServer <- function(id, data_module) {
           writexl::write_xlsx(tri, path = file)
         } else if (requireNamespace("openxlsx", quietly = TRUE)) {
           openxlsx::write.xlsx(tri, file)
+        } else {
+          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
+        }
+      }
+    )
+
+    # Cumulative Triangle downloads (CSV / Excel)
+    output$download_cum_triangle_csv <- downloadHandler(
+      filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".csv"),
+      content = function(file) {
+        tri <- cum_triangle_data()
+        if (is.null(tri) || nrow(tri) == 0) stop("Cumulative triangle not available for ACC.")
+        utils::write.csv(tri, file, row.names = FALSE, na = "")
+      },
+      contentType = "text/csv"
+    )
+
+    output$download_cum_triangle_xlsx <- downloadHandler(
+      filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".xlsx"),
+      content = function(file) {
+        tri <- cum_triangle_data()
+        if (is.null(tri) || nrow(tri) == 0) stop("Cumulative triangle not available for ACC.")
+        if (requireNamespace("writexl", quietly = TRUE)) {
+          writexl::write_xlsx(tri, path = file)
+        } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+          openxlsx::write.xlsx(tri, file)
+        } else {
+          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
+        }
+      }
+    )
+
+    # Cumulative Summary downloads (CSV / Excel)
+    build_cum_summary_df <- function() {
+      tri <- cum_triangle_data()
+      if (is.null(tri) || nrow(tri) == 0) return(NULL)
+      dev_cols <- setdiff(names(tri), "origin")
+      if (!length(dev_cols)) return(NULL)
+
+      col_sums <- vapply(dev_cols, function(nm) sum(suppressWarnings(as.numeric(tri[[nm]])), na.rm = TRUE), numeric(1))
+      last_vals <- vapply(dev_cols, function(nm) {
+        col <- suppressWarnings(as.numeric(tri[[nm]]))
+        idx <- which(!is.na(col))
+        if (length(idx)) col[max(idx)] else NA_real_
+      }, numeric(1))
+
+      n_dev <- length(dev_cols)
+      dev_factors <- rep(NA_real_, n_dev)
+      if (n_dev >= 1) {
+        for (j in seq_len(n_dev)) {
+          if (j == n_dev) {
+            dev_factors[j] <- 1
+          } else {
+            num <- col_sums[j + 1]
+            den <- col_sums[j] - last_vals[j]
+            if (is.na(num) || is.na(den) || den <= 0) {
+              dev_factors[j] <- NA_real_
+            } else {
+              dev_factors[j] <- num / den
+            }
+          }
+        }
+      }
+
+      cdf <- rep(NA_real_, n_dev)
+      if (n_dev >= 1) {
+        cdf[n_dev] <- 1
+        if (n_dev >= 2) {
+          for (j in (n_dev - 1):1) {
+            slice <- dev_factors[j:n_dev]
+            if (any(is.na(slice)) || any(!is.finite(slice))) {
+              cdf[j] <- NA_real_
+            } else {
+              cdf[j] <- prod(slice)
+            }
+          }
+        }
+      }
+
+      # Assemble a tidy summary table with one row per metric
+      summary_mat <- rbind(
+        setNames(as.list(c("Column Sum", as.numeric(col_sums))), c("Metric", dev_cols)),
+        setNames(as.list(c("Last Column Value", as.numeric(last_vals))), c("Metric", dev_cols)),
+        setNames(as.list(c("Development Factors", as.numeric(dev_factors))), c("Metric", dev_cols)),
+        setNames(as.list(c("Cumulative Development Factors", as.numeric(cdf))), c("Metric", dev_cols))
+      )
+      # Convert to data.frame with stringsAsFactors=FALSE
+      as.data.frame(summary_mat, stringsAsFactors = FALSE, check.names = FALSE)
+    }
+
+    output$download_cum_summary_csv <- downloadHandler(
+      filename = function() paste0("acc_cumulative_summary_", Sys.Date(), ".csv"),
+      content = function(file) {
+        df <- build_cum_summary_df()
+        if (is.null(df)) stop("Cumulative summary not available for ACC.")
+        # Ensure numeric columns stay numeric; NA exported as blank
+        utils::write.csv(df, file, row.names = FALSE, na = "")
+      },
+      contentType = "text/csv"
+    )
+
+    output$download_cum_summary_xlsx <- downloadHandler(
+      filename = function() paste0("acc_cumulative_summary_", Sys.Date(), ".xlsx"),
+      content = function(file) {
+        df <- build_cum_summary_df()
+        if (is.null(df)) stop("Cumulative summary not available for ACC.")
+        if (requireNamespace("writexl", quietly = TRUE)) {
+          writexl::write_xlsx(df, path = file)
+        } else if (requireNamespace("openxlsx", quietly = TRUE)) {
+          openxlsx::write.xlsx(df, file)
         } else {
           stop("Please install 'writexl' or 'openxlsx' to export Excel.")
         }
