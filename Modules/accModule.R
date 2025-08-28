@@ -62,6 +62,11 @@ accModuleUI <- function(id) {
           div(class = "triangle-box",
             verbatimTextOutput(ns("accCumTriangleSumsText"))
           )
+        ),
+        Separator(),
+        Text("Reserves", variant = "large", style = list(fontWeight = "600")),
+        div(class = "simple-table-container",
+          DT::dataTableOutput(ns("accReservesTable"))
         )
       )
     ),
@@ -742,5 +747,40 @@ accModuleServer <- function(id, data_module) {
         }
       }
     )
+
+    # Reserves table just under the cumulative summary
+    reserves_data <- reactive({
+      tri <- cum_triangle_data()
+      if (is.null(tri) || nrow(tri) == 0) return(NULL)
+      # Column 1: origin from cumulative triangle
+      origins <- tri$origin
+      # Other columns blank for now
+      data.frame(
+        Origin = origins,
+        `Actual Reported` = rep(NA_character_, length(origins)),
+        `Adjusted Reported` = rep(NA_character_, length(origins)),
+        `BCL Expected Ult Claims` = rep(NA_character_, length(origins)),
+        `BCL IBNR` = rep(NA_character_, length(origins)),
+        `BF Expected Ult Claims` = rep(NA_character_, length(origins)),
+        `BF IBNR` = rep(NA_character_, length(origins)),
+        `LR EXpected Ult Claims` = rep(NA_character_, length(origins)),
+        `LR IBNR` = rep(NA_character_, length(origins)),
+        `Gross Earned Premium` = rep(NA_character_, length(origins)),
+        stringsAsFactors = FALSE
+      )
+    })
+
+    output$accReservesTable <- DT::renderDataTable({
+      df <- reserves_data()
+      if (is.null(df)) {
+        return(DT::datatable(data.frame(Message = "No reserves rows available."), options = list(dom = 't'), rownames = FALSE))
+      }
+      DT::datatable(
+        df,
+        options = list(pageLength = 20, scrollX = TRUE),
+        rownames = FALSE,
+        class = 'cell-border stripe hover'
+      )
+    })
   })
 }
