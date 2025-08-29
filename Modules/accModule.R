@@ -804,22 +804,28 @@ accModuleServer <- function(id, data_module) {
       }
       # Identify numeric columns for optional formatting (Actual.Reported)
       num_cols <- which(sapply(df, is.numeric))
+      # Build columnDefs separately to avoid inline if/else parsing issues
+      column_defs <- if (length(num_cols)) {
+        list(
+          list(targets = num_cols - 1, render = DT::JS(
+            "function(data, type, full, meta) {",
+            "  if(type === 'display' && data != null) {",
+            "    var num = parseFloat(data);",
+            "    if (!isNaN(num)) return 'SCR ' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
+            "  }",
+            "  return data;",
+            "}"
+          ))
+        )
+      } else {
+        list()
+      }
       tbl <- DT::datatable(
         df,
         options = list(
           pageLength = 20,
           scrollX = TRUE,
-          columnDefs = if (length(num_cols)) list(
-            list(targets = num_cols - 1, render = DT::JS(
-              "function(data, type, full, meta) {",
-              "  if(type === 'display' && data != null) {",
-              "    var num = parseFloat(data);",
-              "    if (!isNaN(num)) return 'SCR ' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
-              "  }",
-              "  return data;",
-              "}"
-            )) else list()
-          )
+          columnDefs = column_defs
         ),
         rownames = FALSE,
         class = 'cell-border stripe hover'
