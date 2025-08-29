@@ -754,10 +754,37 @@ accModuleServer <- function(id, data_module) {
       if (is.null(tri) || nrow(tri) == 0) return(NULL)
       # Column 1: origin from cumulative triangle
       origins <- tri$origin
-      # Other columns blank for now
+
+      # Compute Actual.Reported from acc_data: sum of Gross Amount by Loss_Year/Loss_Quarter matching origins
+      acc <- acc_data()
+      actual_reported <- rep(NA_real_, length(origins))
+      if (!is.null(acc) && nrow(acc) > 0) {
+        # Derive Loss Year / Quarter for acc_data if missing
+        ly <- if ("Loss_Year" %in% names(acc)) suppressWarnings(as.integer(acc$Loss_Year)) else NA_integer_
+        lq <- if ("Loss_Quarter" %in% names(acc)) suppressWarnings(as.integer(acc$Loss_Quarter)) else NA_integer_
+        if ((all(is.na(ly)) || all(is.na(lq))) && "Loss Date" %in% names(acc)) {
+          ld <- suppressWarnings(as.Date(acc$`Loss Date`))
+          if (all(is.na(ly))) ly <- suppressWarnings(lubridate::year(ld))
+          if (all(is.na(lq))) lq <- suppressWarnings(lubridate::quarter(ld))
+        }
+        # Fallbacks
+        lq[is.na(lq)] <- 1L
+        # Build origin codes to match triangle origins
+        origin_acc <- paste0(ly, "-Q", lq)
+        ga <- if ("Gross Amount" %in% names(acc)) suppressWarnings(as.numeric(acc$`Gross Amount`)) else rep(NA_real_, nrow(acc))
+        df_ga <- data.frame(origin = origin_acc, ga = ga, stringsAsFactors = FALSE)
+        df_ga <- df_ga[!is.na(df_ga$origin) & !is.na(df_ga$ga), , drop = FALSE]
+        if (nrow(df_ga) > 0) {
+          sums <- tapply(df_ga$ga, df_ga$origin, sum, na.rm = TRUE)
+          # Map sums to the reserves origins
+          actual_reported <- as.numeric(sums[origins])
+        }
+      }
+
+      # Other columns remain blank for now
       data.frame(
         Origin = origins,
-        `Actual Reported` = rep(NA_character_, length(origins)),
+        `Actual.Reported` = actual_reported,
         `Adjusted Reported` = rep(NA_character_, length(origins)),
         `BCL Expected Ult Claims` = rep(NA_character_, length(origins)),
         `BCL IBNR` = rep(NA_character_, length(origins)),
@@ -775,12 +802,29 @@ accModuleServer <- function(id, data_module) {
       if (is.null(df)) {
         return(DT::datatable(data.frame(Message = "No reserves rows available."), options = list(dom = 't'), rownames = FALSE))
       }
-      DT::datatable(
+      # Identify numeric columns for optional formatting (Actual.Reported)
+      num_cols <- which(sapply(df, is.numeric))
+      tbl <- DT::datatable(
         df,
-        options = list(pageLength = 20, scrollX = TRUE),
+        options = list(
+          pageLength = 20,
+          scrollX = TRUE,
+          columnDefs = if (length(num_cols)) list(
+            list(targets = num_cols - 1, render = DT::JS(
+              "function(data, type, full, meta) {",
+              "  if(type === 'display' && data != null) {",
+              "    var num = parseFloat(data);",
+              "    if (!isNaN(num)) return 'SCR ' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
+              "  }",
+              "  return data;",
+              "}"
+            )) else list()
+          )
+        ),
         rownames = FALSE,
         class = 'cell-border stripe hover'
       )
+      tbl
     })
   })
 }
