@@ -833,7 +833,10 @@ accModuleServer <- function(id, data_module) {
             "function(data, type, full, meta) {",
             "  if(type === 'display' && data != null) {",
             "    var num = parseFloat(data);",
-            "    if (!isNaN(num)) return 'SCR ' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});",
+            "    if (!isNaN(num)) {",
+            "      var n = Math.round(num);",
+            "      return 'SCR ' + n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});",
+            "    }",
             "  }",
             "  return data;",
             "}"
