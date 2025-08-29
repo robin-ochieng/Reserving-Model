@@ -757,8 +757,7 @@ accModuleServer <- function(id, data_module) {
 
       # Compute Actual.Reported from acc_data: sum of Gross Amount by Loss_Year/Loss_Quarter matching origins
       acc <- acc_data()
-  actual_reported <- rep(NA_real_, length(origins))
-  adjusted_reported <- rep(NA_real_, length(origins))
+      actual_reported <- rep(NA_real_, length(origins))
       if (!is.null(acc) && nrow(acc) > 0) {
         # Derive Loss Year / Quarter for acc_data if missing
         ly <- if ("Loss_Year" %in% names(acc)) suppressWarnings(as.integer(acc$Loss_Year)) else NA_integer_
@@ -773,14 +772,33 @@ accModuleServer <- function(id, data_module) {
         # Build origin codes to match triangle origins
         origin_acc <- paste0(ly, "-Q", lq)
         ga <- if ("Gross Amount" %in% names(acc)) suppressWarnings(as.numeric(acc$`Gross Amount`)) else rep(NA_real_, nrow(acc))
-        aga <- if ("Adjusted Gross Amount" %in% names(acc)) suppressWarnings(as.numeric(acc$`Adjusted Gross Amount`)) else rep(NA_real_, nrow(acc))
-        df_vals <- data.frame(origin = origin_acc, ga = ga, aga = aga, stringsAsFactors = FALSE)
-        df_vals <- df_vals[!is.na(df_vals$origin), , drop = FALSE]
-        if (nrow(df_vals) > 0) {
-          sums_ga  <- tapply(df_vals$ga,  df_vals$origin, function(x) sum(x, na.rm = TRUE))
-          sums_aga <- tapply(df_vals$aga, df_vals$origin, function(x) sum(x, na.rm = TRUE))
+        df_ga <- data.frame(origin = origin_acc, ga = ga, stringsAsFactors = FALSE)
+        df_ga <- df_ga[!is.na(df_ga$origin) & !is.na(df_ga$ga), , drop = FALSE]
+        if (nrow(df_ga) > 0) {
+          sums <- tapply(df_ga$ga, df_ga$origin, sum, na.rm = TRUE)
           # Map sums to the reserves origins
-          actual_reported   <- as.numeric(sums_ga[origins])
+          actual_reported <- as.numeric(sums[origins])
+        }
+      }
+
+      # Compute Adjusted.Reported from adjusted_data: sum of Adjusted Gross Amount by Loss_Year/Loss_Quarter matching origins
+      adj <- adjusted_data()
+      adjusted_reported <- rep(NA_real_, length(origins))
+      if (!is.null(adj) && nrow(adj) > 0) {
+        ly_a <- if ("Loss_Year" %in% names(adj)) suppressWarnings(as.integer(adj$Loss_Year)) else NA_integer_
+        lq_a <- if ("Loss_Quarter" %in% names(adj)) suppressWarnings(as.integer(adj$Loss_Quarter)) else NA_integer_
+        if ((all(is.na(ly_a)) || all(is.na(lq_a))) && "Loss Date" %in% names(adj)) {
+          ld_a <- suppressWarnings(as.Date(adj$`Loss Date`))
+          if (all(is.na(ly_a))) ly_a <- suppressWarnings(lubridate::year(ld_a))
+          if (all(is.na(lq_a))) lq_a <- suppressWarnings(lubridate::quarter(ld_a))
+        }
+        lq_a[is.na(lq_a)] <- 1L
+        origin_adj <- paste0(ly_a, "-Q", lq_a)
+        aga <- if ("Adjusted Gross Amount" %in% names(adj)) suppressWarnings(as.numeric(adj$`Adjusted Gross Amount`)) else rep(NA_real_, nrow(adj))
+        df_aga <- data.frame(origin = origin_adj, aga = aga, stringsAsFactors = FALSE)
+        df_aga <- df_aga[!is.na(df_aga$origin) & !is.na(df_aga$aga), , drop = FALSE]
+        if (nrow(df_aga) > 0) {
+          sums_aga <- tapply(df_aga$aga, df_aga$origin, sum, na.rm = TRUE)
           adjusted_reported <- as.numeric(sums_aga[origins])
         }
       }
@@ -789,7 +807,7 @@ accModuleServer <- function(id, data_module) {
       data.frame(
         Origin = origins,
         `Actual.Reported` = actual_reported,
-  `Adjusted Reported` = adjusted_reported,
+        `Adjusted.Reported` = adjusted_reported,
         `BCL Expected Ult Claims` = rep(NA_character_, length(origins)),
         `BCL IBNR` = rep(NA_character_, length(origins)),
         `BF Expected Ult Claims` = rep(NA_character_, length(origins)),
@@ -809,7 +827,7 @@ accModuleServer <- function(id, data_module) {
       # Identify numeric columns for optional formatting (Actual.Reported)
       num_cols <- which(sapply(df, is.numeric))
       # Build columnDefs separately to avoid inline if/else parsing issues
-  column_defs <- if (length(num_cols)) {
+      column_defs <- if (length(num_cols)) {
         list(
           list(targets = num_cols - 1, render = DT::JS(
             "function(data, type, full, meta) {",
