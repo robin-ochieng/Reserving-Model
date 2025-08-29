@@ -824,18 +824,17 @@ accModuleServer <- function(id, data_module) {
       if (is.null(df)) {
         return(DT::datatable(data.frame(Message = "No reserves rows available."), options = list(dom = 't'), rownames = FALSE))
       }
-      # Identify numeric columns for optional formatting (Actual.Reported)
-      num_cols <- which(sapply(df, is.numeric))
-      # Build columnDefs separately to avoid inline if/else parsing issues
-      column_defs <- if (length(num_cols)) {
+      # Build columnDefs to format all non-Origin columns with comma separators and 0 decimals
+      all_non_origin_targets <- if (ncol(df) > 1) 1:(ncol(df) - 1) else integer(0)
+      column_defs <- if (length(all_non_origin_targets)) {
         list(
-          list(targets = num_cols - 1, render = DT::JS(
+          list(targets = all_non_origin_targets, render = DT::JS(
             "function(data, type, full, meta) {",
             "  if(type === 'display' && data != null) {",
             "    var num = parseFloat(data);",
             "    if (!isNaN(num)) {",
             "      var n = Math.round(num);",
-            "      return 'SCR ' + n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});",
+            "      return n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});",
             "    }",
             "  }",
             "  return data;",
