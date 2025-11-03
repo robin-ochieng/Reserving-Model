@@ -88,14 +88,27 @@ if (!window.__saccosDownloadHandlerRegistered) {
   if (window.Shiny && typeof Shiny.addCustomMessageHandler === 'function') {
     Shiny.addCustomMessageHandler('downloadFile', function(message) {
       try {
+        // Convert base64 content to blob and download
+        var byteCharacters = atob(message.content);
+        var byteNumbers = new Array(byteCharacters.length);
+        for (var i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        var byteArray = new Uint8Array(byteNumbers);
+        var blob = new Blob([byteArray], { type: message.contentType });
+        
+        // Create download link
+        var url = window.URL.createObjectURL(blob);
         var link = document.createElement('a');
-        link.href = message.dataUri;
+        link.href = url;
         link.download = message.filename || 'download';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
       } catch (e) {
         console.error('Download failed', e);
+        alert('Download failed: ' + e.message);
       }
     });
   }

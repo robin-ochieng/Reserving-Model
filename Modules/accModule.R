@@ -31,9 +31,23 @@ accModuleUI <- function(id) {
   # Dataset table hidden as requested
         Separator(),
         Text("Incremental Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
-        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
-          downloadButton(ns("download_triangle_csv"), "Download Triangle CSV"),
-          downloadButton(ns("download_triangle_xlsx"), "Download Triangle Excel")
+        div(class = "download-buttons-container",
+          tags$a(
+            class = "btn btn-download btn-csv",
+            href = "#",
+            onclick = sprintf("document.getElementById('%s').click(); return false;", ns("download_triangle_csv_link")),
+            tags$i(class = "fas fa-file-csv"),
+            "CSV"
+          ),
+          downloadButton(ns("download_triangle_csv_link"), "", style = "display: none;"),
+          tags$a(
+            class = "btn btn-download btn-excel",
+            href = "#",
+            onclick = sprintf("document.getElementById('%s').click(); return false;", ns("download_triangle_xlsx_link")),
+            tags$i(class = "fas fa-file-excel"),
+            "Excel"
+          ),
+          downloadButton(ns("download_triangle_xlsx_link"), "", style = "display: none;")
         ),
         div(class = "simple-table-container",
           div(class = "triangle-box",
@@ -43,9 +57,23 @@ accModuleUI <- function(id) {
         ,
         Separator(),
         Text("Cumulative Triangle (ACC)", variant = "large", style = list(fontWeight = "600")),
-        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
-          downloadButton(ns("download_cum_triangle_csv"), "Download Cumulative CSV"),
-          downloadButton(ns("download_cum_triangle_xlsx"), "Download Cumulative Excel")
+        div(class = "download-buttons-container",
+          tags$a(
+            class = "btn btn-download btn-csv",
+            href = "#",
+            onclick = sprintf("document.getElementById('%s').click(); return false;", ns("download_cum_triangle_csv_link")),
+            tags$i(class = "fas fa-file-csv"),
+            "CSV"
+          ),
+          downloadButton(ns("download_cum_triangle_csv_link"), "", style = "display: none;"),
+          tags$a(
+            class = "btn btn-download btn-excel",
+            href = "#",
+            onclick = sprintf("document.getElementById('%s').click(); return false;", ns("download_cum_triangle_xlsx_link")),
+            tags$i(class = "fas fa-file-excel"),
+            "Excel"
+          ),
+          downloadButton(ns("download_cum_triangle_xlsx_link"), "", style = "display: none;")
         ),
         div(class = "simple-table-container",
           div(class = "triangle-box",
@@ -54,9 +82,23 @@ accModuleUI <- function(id) {
         ),
         Separator(),
         Text("Cumulative Triangle Column Sums (ACC)", variant = "large", style = list(fontWeight = "600")),
-        div(style = list(display = "flex", gap = "10px", marginTop = "4px"),
-          downloadButton(ns("download_cum_summary_csv"), "Download Summary CSV"),
-          downloadButton(ns("download_cum_summary_xlsx"), "Download Summary Excel")
+        div(class = "download-buttons-container",
+          tags$a(
+            class = "btn btn-download btn-csv",
+            href = "#",
+            onclick = sprintf("document.getElementById('%s').click(); return false;", ns("download_cum_summary_csv_link")),
+            tags$i(class = "fas fa-file-csv"),
+            "CSV"
+          ),
+          downloadButton(ns("download_cum_summary_csv_link"), "", style = "display: none;"),
+          tags$a(
+            class = "btn btn-download btn-excel",
+            href = "#",
+            onclick = sprintf("document.getElementById('%s').click(); return false;", ns("download_cum_summary_xlsx_link")),
+            tags$i(class = "fas fa-file-excel"),
+            "Excel"
+          ),
+          downloadButton(ns("download_cum_summary_xlsx_link"), "", style = "display: none;")
         ),
         div(class = "simple-table-container",
           div(class = "triangle-box",
@@ -612,53 +654,65 @@ accModuleServer <- function(id, data_module) {
     )
 
     # Triangle downloads (CSV / Excel)
-    output$download_triangle_csv <- downloadHandler(
-      filename = function() paste0("acc_triangle_", Sys.Date(), ".csv"),
+    output$download_triangle_csv_link <- downloadHandler(
+      filename = function() paste0("acc_incremental_triangle_", Sys.Date(), ".csv"),
       content = function(file) {
         tri <- triangle_data()
-        if (is.null(tri) || nrow(tri) == 0) stop("Triangle not available for ACC.")
+        if (is.null(tri) || nrow(tri) == 0) {
+          showNotification("Triangle data not available for ACC.", type = "error")
+          return()
+        }
         utils::write.csv(tri, file, row.names = FALSE, na = "")
       },
       contentType = "text/csv"
     )
 
-    output$download_triangle_xlsx <- downloadHandler(
-      filename = function() paste0("acc_triangle_", Sys.Date(), ".xlsx"),
+    output$download_triangle_xlsx_link <- downloadHandler(
+      filename = function() paste0("acc_incremental_triangle_", Sys.Date(), ".xlsx"),
       content = function(file) {
         tri <- triangle_data()
-        if (is.null(tri) || nrow(tri) == 0) stop("Triangle not available for ACC.")
+        if (is.null(tri) || nrow(tri) == 0) {
+          showNotification("Triangle data not available for ACC.", type = "error")
+          return()
+        }
         if (requireNamespace("writexl", quietly = TRUE)) {
           writexl::write_xlsx(tri, path = file)
         } else if (requireNamespace("openxlsx", quietly = TRUE)) {
           openxlsx::write.xlsx(tri, file)
         } else {
-          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
+          showNotification("Please install 'writexl' or 'openxlsx' to export Excel.", type = "error")
         }
       }
     )
 
     # Cumulative Triangle downloads (CSV / Excel)
-    output$download_cum_triangle_csv <- downloadHandler(
+    output$download_cum_triangle_csv_link <- downloadHandler(
       filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".csv"),
       content = function(file) {
         tri <- cum_triangle_data()
-        if (is.null(tri) || nrow(tri) == 0) stop("Cumulative triangle not available for ACC.")
+        if (is.null(tri) || nrow(tri) == 0) {
+          showNotification("Cumulative triangle data not available for ACC.", type = "error")
+          return()
+        }
         utils::write.csv(tri, file, row.names = FALSE, na = "")
       },
       contentType = "text/csv"
     )
 
-    output$download_cum_triangle_xlsx <- downloadHandler(
+    output$download_cum_triangle_xlsx_link <- downloadHandler(
       filename = function() paste0("acc_cumulative_triangle_", Sys.Date(), ".xlsx"),
       content = function(file) {
         tri <- cum_triangle_data()
-        if (is.null(tri) || nrow(tri) == 0) stop("Cumulative triangle not available for ACC.")
+        if (is.null(tri) || nrow(tri) == 0) {
+          showNotification("Cumulative triangle data not available for ACC.", type = "error")
+          return()
+        }
         if (requireNamespace("writexl", quietly = TRUE)) {
           writexl::write_xlsx(tri, path = file)
         } else if (requireNamespace("openxlsx", quietly = TRUE)) {
           openxlsx::write.xlsx(tri, file)
         } else {
-          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
+          showNotification("Please install 'writexl' or 'openxlsx' to export Excel.", type = "error")
         }
       }
     )
@@ -710,6 +764,9 @@ accModuleServer <- function(id, data_module) {
         }
       }
 
+      # Compute % Development from CDF
+      pct_dev <- ifelse(is.finite(cdf) & cdf > 0, 1 / cdf, NA_real_)
+
       # Assemble a tidy summary table with one row per metric
       summary_mat <- rbind(
         setNames(as.list(c("Column Sum", as.numeric(col_sums))), c("Metric", dev_cols)),
@@ -722,28 +779,34 @@ accModuleServer <- function(id, data_module) {
       as.data.frame(summary_mat, stringsAsFactors = FALSE, check.names = FALSE)
     }
 
-    output$download_cum_summary_csv <- downloadHandler(
+    # Cumulative Summary downloads (CSV / Excel)
+    output$download_cum_summary_csv_link <- downloadHandler(
       filename = function() paste0("acc_cumulative_summary_", Sys.Date(), ".csv"),
       content = function(file) {
         df <- build_cum_summary_df()
-        if (is.null(df)) stop("Cumulative summary not available for ACC.")
-        # Ensure numeric columns stay numeric; NA exported as blank
+        if (is.null(df)) {
+          showNotification("Cumulative summary data not available for ACC.", type = "error")
+          return()
+        }
         utils::write.csv(df, file, row.names = FALSE, na = "")
       },
       contentType = "text/csv"
     )
 
-    output$download_cum_summary_xlsx <- downloadHandler(
+    output$download_cum_summary_xlsx_link <- downloadHandler(
       filename = function() paste0("acc_cumulative_summary_", Sys.Date(), ".xlsx"),
       content = function(file) {
         df <- build_cum_summary_df()
-        if (is.null(df)) stop("Cumulative summary not available for ACC.")
+        if (is.null(df)) {
+          showNotification("Cumulative summary data not available for ACC.", type = "error")
+          return()
+        }
         if (requireNamespace("writexl", quietly = TRUE)) {
           writexl::write_xlsx(df, path = file)
         } else if (requireNamespace("openxlsx", quietly = TRUE)) {
           openxlsx::write.xlsx(df, file)
         } else {
-          stop("Please install 'writexl' or 'openxlsx' to export Excel.")
+          showNotification("Please install 'writexl' or 'openxlsx' to export Excel.", type = "error")
         }
       }
     )

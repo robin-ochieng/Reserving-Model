@@ -36,17 +36,8 @@ ui <- fluidPage(
     tags$link(rel = "stylesheet", type = "text/css", href = "css/landingPage.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/dataModule.css"),
     tags$title("SACOS Reserving Model"),
-    # Add custom JavaScript for download functionality
-    tags$script(HTML("
-      Shiny.addCustomMessageHandler('downloadFile', function(message) {
-        const link = document.createElement('a');
-        link.href = message.dataUri;
-        link.download = message.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
-    ")),
+    # Include custom JavaScript
+    tags$script(src = "js/customjs.js"),
   
   # Include external custom JavaScript file
   tags$script(src = "js/customjs.js")
